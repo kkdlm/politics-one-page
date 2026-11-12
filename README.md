@@ -2,16 +2,23 @@
 
 2027 考研政治知识点背诵程序（完整功能版）：100 个考点、6 个视图、337 道题、帽子题 / 会议时间轴 / 口诀专题。
 
-## 手机直接用
+## 打开方式
 
-- 程序本体（推荐，可加到主屏）：https://aka.doubaocdn.com/s/jujlWToaeX
-- 本仓库秒跳转入口：https://cdn.jsdelivr.net/gh/kkdlm/politics-one-page@main/index.html
+- 已开启 Pages 后：https://kkdlm.github.io/politics-one-page/
+- 未开启、先用直链：https://aka.doubaocdn.com/s/jujlWToaeX
 
-## 仓库里为什么没有源文件
+## 怎么开启 Pages（手机 3 步）
 
-单文件版把 100 条考点全文、337 道题、史纲脉络图（WebP）全部内联，共 513,312 字节。
-建仓时所用凭据只能写入小体积文本，无法通过 API 提交 500 KB 以上的单文件，因此本仓库放置跳转入口与说明，程序本体以直链分发。
-如需自行托管：下载后在 GitHub 网页端 Upload files 上传，再在 Settings → Pages 选择分支即可。
+> GitHub App 里没有这个设置，必须用手机**浏览器**打开网页版 GitHub。
+
+1. 打开 https://github.com/kkdlm/politics-one-page/settings/pages
+2. `Source` 选 **Deploy from a branch**；`Branch` 选 **main**，目录保持 **/(root)**
+3. 点 **Save**，等 1～2 分钟，上面的 github.io 地址就能直接跑了
+
+## 文件
+
+- `index.html` —— 完整程序本体，513,312 字节，单文件自包含。
+- `.github/workflows/setup.yml` —— 手动触发的同步脚本（在 Actions 里 Run workflow 可从直链重新拉取最新版）。
 
 ## 功能概览
 
