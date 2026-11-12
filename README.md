@@ -4,30 +4,33 @@
 
 ## 打开方式
 
-- 已开启 Pages 后：https://kkdlm.github.io/politics-one-page/
-- 未开启、先用直链：https://aka.doubaocdn.com/s/jujlWToaeX
+- GitHub Pages（推荐）：https://kkdlm.github.io/politics-one-page/
+- 备用直链：https://aka.doubaocdn.com/s/Xtl9Zpf5kj
 
-## 怎么开启 Pages（手机 3 步）
+## 我的密钥（免注册存档）
 
-> GitHub App 里没有这个设置，必须用手机**浏览器**打开网页版 GitHub。
+顶部齿轮 ⚙ → 「**我的密钥**」：
 
-1. 打开 https://github.com/kkdlm/politics-one-page/settings/pages
-2. `Source` 选 **Deploy from a branch**；`Branch` 选 **main**，目录保持 **/(root)**
-3. 点 **Save**，等 1～2 分钟，上面的 github.io 地址就能直接跑了
+1. 输入自定义密钥（至少 4 位），点**保存密钥**；
+2. 点**生成同步码**，得到一段 `YZ1.` 开头的密文（约 180 字符）；
+3. 换设备打开 → 输入同一把密钥 → **粘贴恢复** → 掌握、收藏、复习排期、错题记录就全回来。
 
-## 文件
-
-- `index.html` —— 完整程序本体，513,312 字节，单文件自包含。
-- `.github/workflows/setup.yml` —— 手动触发的同步脚本（在 Actions 里 Run workflow 可从直链重新拉取最新版）。
+- 不注册、不上传任何第三方服务器，密钥只存在本机；
+- AES-GCM(256) + PBKDF2（12000 轮）；密钥不对则解密失败，不会错乱覆盖。
 
 ## 功能概览
 
 - **速览**：100 条考点卡片，章节 / 收藏 / 待复习筛选，搜索，展开正文。
-- **抽背**：问答自评（没记住 / 模糊 / 会了），按 2 小时 / 1 天 / 4 天排期复习。
+- **抽背**：问答自评（没记住 / 模糊 / 会了），按 2 小时 / 1 天 / 4 天排期。
 - **挖空**：整行遮盖，揭示 / 重置 / 上下条。
-- **专题**：帽子题 83 条、会议时间轴 36 节点、口诀 27 句，三个标签并列。
+- **专题**：帽子题 83 条、会议时间轴 36 节点、口诀 27 句。
 - **测验**：337 题（近三年真题 + 对照原书自编模拟），含错题本与统计。
-- **存储**：全部进度写在浏览器本地，可导出 / 导入 JSON。
+- **存储**：全部进度在本机浏览器；我的密钥可加密跨设备搬运。
+
+## 文件
+
+- `index.html` —— 程序本体，519,353 字节。
+- `.github/workflows/setup.yml` —— 推送时从直链自动同步 `index.html`。
 
 ## 说明
 
