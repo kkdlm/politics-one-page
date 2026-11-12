@@ -283,6 +283,9 @@ h1 em{font-style:normal;color:var(--red)}
 .r-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);
   padding:20px 20px;display:flex;flex-direction:column;position:relative;min-height:270px}
 .r-meta{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.06em;color:var(--ink-3)}
+.memtag{margin-left:auto;padding:2px 8px;border-radius:20px;font-size:10.5px;letter-spacing:.04em}
+.memtag.new{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red)}
+.memtag.review{background:color-mix(in srgb,#2E6E63 14%,transparent);color:#2E6E63}
 .r-title{font-family:var(--serif);font-size:calc(25px * var(--fs));font-weight:600;line-height:1.3;margin:12px 0 4px;letter-spacing:.02em}
 .r-rule{height:1px;background:var(--line);margin:14px 0 0}
 .r-body{margin-top:14px;overflow-y:auto;max-height:46vh;flex:0 0 auto;scrollbar-width:thin;overscroll-behavior:contain}
@@ -389,6 +392,13 @@ html[data-theme="night"] .rate .ok{background:#1A2A26;border-color:#254039}
 .goal-info h4{margin:0 0 2px;font-size:14px;font-family:var(--serif)}
 .goal-info p{margin:0;font-size:11.5px;color:var(--ink-3);line-height:1.5}
 .goal-info .done{color:var(--red);font-weight:700}
+.goal-custom{margin-top:14px}
+.goal-custom label{display:block;font-size:12px;color:var(--ink-3);margin-bottom:7px}
+.goal-input{display:flex;gap:8px}
+.goal-input input{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--paper);
+  border-radius:9px;padding:10px 12px;font:inherit;font-size:14px;color:var(--ink)}
+.goal-input input:focus{outline:none;border-color:var(--red)}
+.goal-input button{flex:0 0 auto;padding:0 18px;border-radius:9px;font-size:13.5px}
 
 /* ============ 搜索高亮 ============ */
 mark.hl{background:#f3d98a;color:inherit;border-radius:3px;padding:0 1px}
@@ -706,8 +716,8 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
       <div class="stat"><b id="s-fav">0</b><span>收藏</span></div>
     </div>
 
-    <button class="cta" onclick="startRecite()">
-      <span class="l"><b id="ctaTitle">开始抽背</b><span id="ctaSub">按原书顺序 001—100 · 自评三档</span></span>
+    <button class="cta" onclick="openToday()">
+      <span class="l"><b id="ctaTitle">今日背诵</b><span id="ctaSub">到期复习 + 新学 · 按记忆曲线排期</span></span>
       <i>→</i>
     </button>
 
@@ -978,12 +988,24 @@ const CH = [
 /* ---------- 状态 ---------- */
 const KEY='yzy2027.v1';
 const DEF={status:{},fav:[],due:{},seen:{},last:null,core:true,log:{},theme:'light',fs:'m',
-  sub:'rec',goal:20,notes:{},quizLog:{},qwrong:[],qdone:[],ient:{}};
+  sub:'rec',goal:20,notes:{},quizLog:{},qwrong:[],qdone:[],ient:{},srs:{},today:null};
 let S=(()=>{
   try{ return Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}')); }
   catch(e){ return Object.assign({},DEF); }
 })();
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function migrateSrs(){
+  S.srs=S.srs||{};
+  const map={ok:{g:2,r:1},mid:{g:1,r:0},no:{g:0,r:0}};
+  let changed=false;
+  Object.keys(S.ient||{}).forEach(k=>{
+    if(S.srs[k]) return;
+    const m=map[S.ient[k]];
+    if(!m) return;
+    S.srs[k]={g:m.g,r:m.r,d:now()+SRS_IVL[m.g]}; changed=true;
+  });
+  if(changed) save();
+}
 function night(){ return document.documentElement.dataset.theme==='night'; }
 function CMAP(){ return Object.fromEntries(CH.map(x=>[x.k, night()?x.d:x.l])); }
 function cOf(k){ const c=CH.find(x=>x.k===k); return c ? (night()?c.d:c.l) : '#A5342E'; }
@@ -992,6 +1014,25 @@ function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;'
 function now(){ return Date.now(); }
 const HOUR=3600e3, DAY=24*HOUR;
 const RATE_DUE={no:2*HOUR, mid:1*DAY, ok:4*DAY};
+/* 艾宾浩斯间隔（条目级）：10分钟 → 1小时 → 1天 → 2天 → 4天 → 7天 → 15天 → 30天 → 60天 */
+const SRS_IVL=[10*60e3, 1*HOUR, 1*DAY, 2*DAY, 4*DAY, 7*DAY, 15*DAY, 30*DAY, 60*DAY];
+const ekey=e=>e.n+'-'+e.li;
+function srsSchedule(key,v){
+  const cur=S.srs[key];
+  let g=cur?cur.g:0, r=cur?(cur.r||0):0;
+  if(v==='ok'){ g=Math.min(g+1,SRS_IVL.length-1); r++; }
+  else if(v==='no'){ g=0; r=0; }
+  /* mid：停在当前档，重新计时 */
+  const d=now()+SRS_IVL[g];
+  S.srs[key]={g,d,r};
+  return {g,d,r};
+}
+function srsLabel(g){
+  const v=SRS_IVL[g];
+  if(v<HOUR) return Math.round(v/60e3)+' 分钟';
+  if(v<DAY) return Math.round(v/HOUR)+' 小时';
+  return Math.round(v/DAY)+' 天';
+}
 const pad3=n=>String(n).padStart(3,'0');
 
 /* ---------- 主题 / 字号 ---------- */
@@ -1057,11 +1098,18 @@ function refreshTop(){
 function renderHome(){
   refreshTop();
   const s=stats();
-  const last=S.last ? PTS.find(p=>p.n===S.last) : null;
-  document.getElementById('ctaTitle').textContent = last ? '继续背诵' : '开始抽背';
-  document.getElementById('ctaSub').textContent = last
-    ? '从第 '+pad3(last.n)+' 条接着背 · 自评三档'
-    : '按原书顺序 001—100 · 自评三档';
+  const tp=todayProgress();
+  const remain=tp.total-tp.done;
+  if(tp.finished){
+    ctaTitle.textContent='今日任务已完成';
+    ctaSub.textContent='复习 '+tp.reviewN+' · 新学 '+tp.newN+' · 可加练';
+  }else if(tp.done>0){
+    ctaTitle.textContent='继续今日背诵';
+    ctaSub.textContent='还剩 '+remain+' 条（复习 '+tp.reviewN+' · 新学 '+tp.newN+'）';
+  }else{
+    ctaTitle.textContent='开始今日背诵';
+    ctaSub.textContent='今日共 '+tp.total+' 条：复习 '+tp.reviewN+' · 新学 '+tp.newN;
+  }
 
   document.getElementById('chChart').innerHTML = CH.map(c=>{
     const ps=PTS.filter(p=>p.ch===c.k);
@@ -1094,8 +1142,10 @@ function renderHome(){
 /* ---------- 每日目标 ---------- */
 function todayCount(){ return S.log[dkey(now())]||0; }
 function renderGoalCard(){
-  const goal=S.goal||20, done=todayCount();
-  const pct=Math.min(100,Math.round(done/goal*100));
+  const goal=S.goal||20;
+  const tp=todayProgress();
+  const done=tp.done, total=tp.total||goal;
+  const pct=total?Math.min(100,Math.round(done/total*100)):0;
   const R=27, C=2*Math.PI*R;
   const box=document.getElementById('goalCard');
   if(!box) return;
@@ -1110,18 +1160,33 @@ function renderGoalCard(){
     </div>
     <div class="goal-info">
       <h4>今日目标 ${goal} 条</h4>
-      <p><span class="done">已完成 ${done} 条</span> · ${done>=goal?'今日目标达成，保持手感':'还差 '+(goal-done)+' 条达成目标'}</p>
+      <p><span class="done">已完成 ${done}/${total}</span> · ${tp.finished?'今日任务达成，可加练':'还差 '+(total-done)+' 条'}</p>
     </div>
     <button class="ghost" style="padding:7px 11px" onclick="openGoalSet()">调整</button>
   </div>`;
+}
+function setGoal(n){
+  n=Math.floor(Number(n));
+  if(!(n>=1)) return;
+  n=Math.min(n,460);
+  S.goal=n;
+  if(S.today && S.today.date===dkey(now()) && S.today.idx===0 && !S.today.finished) S.today=null;
+  save(); renderGoalCard();
 }
 function openGoalSet(){
   const opts=[10,20,30,50];
   openSheet('每日目标',`
     <div class="seg-row" style="flex-wrap:wrap">
-      ${opts.map(n=>`<button class="${S.goal===n?'on':''}" style="flex:1 1 40%" onclick="S.goal=${n};save();renderGoalCard();closeSheet()">${n} 条</button>`).join('')}
+      ${opts.map(n=>`<button class="${S.goal===n?'on':''}" style="flex:1 1 40%" onclick="setGoal(${n});closeSheet()">${n} 条</button>`).join('')}
     </div>
-    <div class="fine">目标按每天「自评/抽背」的条数计算，完成后圆环填满。</div>`);
+    <div class="goal-custom">
+      <label>自定义（1–460 条）</label>
+      <div class="goal-input">
+        <input id="goalInput" type="number" inputmode="numeric" min="1" max="460" value="${S.goal}" placeholder="输入条数">
+        <button class="primary" onclick="setGoal(document.getElementById('goalInput').value);closeSheet()">确定</button>
+      </div>
+    </div>
+    <div class="fine">每天先背到期复习，再用新学补足到目标；改目标不影响今天已生成的队列。</div>`);
 }
 
 
@@ -1311,6 +1376,32 @@ function saveNote(n,val){
   S.notes[n]=val; save();
 }
 
+/* ---------- 今日任务（墨墨式：到期复习 + 新学，艾宾浩斯排期） ---------- */
+let EMAP=null;
+function entryMap(){
+  if(!EMAP){ EMAP={}; expandEnt(PTS).forEach(e=>EMAP[ekey(e)]=e); }
+  return EMAP;
+}
+function ensureToday(force){
+  const dk=dkey(now());
+  if(!force && S.today && S.today.date===dk) return S.today;
+  const all=expandEnt(PTS), t=now();
+  const review=all.filter(e=>{ const c=S.srs[ekey(e)]; return c && c.d<=t; })
+                  .sort((a,b)=>S.srs[ekey(a)].d-S.srs[ekey(b)].d);
+  const fresh=all.filter(e=>!S.srs[ekey(e)]);
+  const goal=S.goal||20;
+  const picked=fresh.slice(0, Math.max(0, goal-review.length));
+  S.today={date:dk, queue:review.concat(picked).map(ekey), idx:0,
+    reviewN:review.length, newN:picked.length, finished:false, reLearn:0};
+  save();
+  return S.today;
+}
+function todayProgress(){
+  const td=ensureToday();
+  return {done:td.idx, total:td.queue.length, reviewN:td.reviewN, newN:td.newN,
+    finished:td.finished, reLearn:td.reLearn};
+}
+
 /* ---------- 抽背（一行一条，只问这一条） ---------- */
 let RQ=[], RIDX=0, RSHOW=false, RSCOPE='全部', RSTAT=null, REND=false;
 function entOf(p){
@@ -1352,6 +1443,7 @@ function expandEnt(list){
   return out;
 }
 function startRecite(list,label){
+  TODAY_MODE=false;
   let ps=[];
   if(list && list.length){
     if(list[0] && list[0].li!==undefined){ RQ=list.slice(); }
@@ -1380,25 +1472,44 @@ function renderRecite(){
     const t=Math.round((Date.now()-RSTAT.t)/1000);
     const done=RSTAT.ok+RSTAT.mid+RSTAT.no;
     const mm=Math.floor(t/60), ss=String(t%60).padStart(2,'0');
-    document.getElementById('rIdx').textContent='本轮结束';
+    document.getElementById('rIdx').textContent=TODAY_MODE?'今日完成':'本轮结束';
     document.getElementById('rBar').style.width='100%';
     card.style.setProperty('--c', cOf(CH[0].k));
-    card.innerHTML=`
-      <div class="sum">
-        <div class="sk">本 轮 结 束</div>
-        <div class="sc">${done} / ${RQ.length}</div>
-        <div class="sd">自评 ${done} 条 · 跳过 ${RSTAT.skip} 条 · 用时 ${mm}:${ss}</div>
-        <div class="sum-grid">
-          <div><b style="color:#A5342E">${RSTAT.no}</b><span>没记住</span></div>
-          <div><b style="color:#94651A">${RSTAT.mid}</b><span>模糊</span></div>
-          <div><b style="color:#2E6E63">${RSTAT.ok}</b><span>会了</span></div>
+    if(TODAY_MODE){
+      const tp=todayProgress();
+      card.innerHTML=`
+        <div class="sum">
+          <div class="sk">今 日 任 务 完 成</div>
+          <div class="sc">${tp.total} 条</div>
+          <div class="sd">连续打卡 ${streakDays()} 天 · 重学 ${tp.reLearn} 条 · 用时 ${mm}:${ss}</div>
+          <div class="sum-grid">
+            <div><b style="color:#2E6E63">${tp.reviewN}</b><span>复习</span></div>
+            <div><b style="color:#A5342E">${tp.newN}</b><span>新学</span></div>
+            <div><b style="color:#94651A">${tp.reLearn}</b><span>重学</span></div>
+          </div>
         </div>
-      </div>
-      <div class="sum-acts">
-        <button class="primary" onclick="roundAgain()">再来一轮（打乱顺序）</button>
-        ${RSTAT.no?`<button onclick="roundWrong()">只刷本轮没记住的 ${RSTAT.no} 条</button>`:''}
-        <button onclick="go('home')">回总览</button>
-      </div>`;
+        <div class="sum-acts">
+          <button class="primary" onclick="todayAdd(10)">加练 10 条</button>
+          <button onclick="go('home')">回总览</button>
+        </div>`;
+    }else{
+      card.innerHTML=`
+        <div class="sum">
+          <div class="sk">本 轮 结 束</div>
+          <div class="sc">${done} / ${RQ.length}</div>
+          <div class="sd">自评 ${done} 条 · 跳过 ${RSTAT.skip} 条 · 用时 ${mm}:${ss}</div>
+          <div class="sum-grid">
+            <div><b style="color:#A5342E">${RSTAT.no}</b><span>没记住</span></div>
+            <div><b style="color:#94651A">${RSTAT.mid}</b><span>模糊</span></div>
+            <div><b style="color:#2E6E63">${RSTAT.ok}</b><span>会了</span></div>
+          </div>
+        </div>
+        <div class="sum-acts">
+          <button class="primary" onclick="roundAgain()">再来一轮（打乱顺序）</button>
+          ${RSTAT.no?`<button onclick="roundWrong()">只刷本轮没记住的 ${RSTAT.no} 条</button>`:''}
+          <button onclick="go('home')">回总览</button>
+        </div>`;
+    }
     document.getElementById('rBottom').style.display='none';
     document.getElementById('rTip').style.display='none';
     return;
@@ -1414,16 +1525,19 @@ function renderRecite(){
   card.style.setProperty('--c', cOf(p.ch));
   const qHtml=e.q.split('＿').map((t,i)=>(i?'<span class="bk"></span>':'')+esc(t)).join('');
   const fullHtml=e.ans.map(([t,isK])=>isK?`<b class="rk">${esc(t)}</b>`:esc(t)).join('');
+  const rateFn=TODAY_MODE?'todayRate':'rate';
+  const srsCur=S.srs[ekey(e)];
+  const memTag=TODAY_MODE?`<span class="memtag ${srsCur?'review':'new'}">${srsCur?('复习 · 第'+(srsCur.r+1)+'次'):'新学'}</span>`:'';
   card.innerHTML=`
-    <div class="r-meta"><i class="dot" style="background:${cOf(p.ch)}"></i>${p.ch}${p.sub&&p.sub!==p.ch?' · '+p.sub:''} · ${pad3(p.n)} · 第 ${e.li+1} 句</div>
+    <div class="r-meta"><i class="dot" style="background:${cOf(p.ch)}"></i>${p.ch}${p.sub&&p.sub!==p.ch?' · '+p.sub:''} · ${pad3(p.n)} · 第 ${e.li+1} 句 ${memTag}</div>
     <div class="r-title" style="font-size:calc(19px * var(--fs))">${esc(p.title)}</div>
     <div class="r-rule"></div>
     ${RSHOW
       ? `<div class="r-ans fadein">${fullHtml}</div>
          <div class="rate">
-           <button class="no" onclick="rate('no')">没记住</button>
-           <button class="mid" onclick="rate('mid')">模糊</button>
-           <button class="ok" onclick="rate('ok')">会了</button>
+           <button class="no" onclick="${rateFn}('no')">没记住</button>
+           <button class="mid" onclick="${rateFn}('mid')">模糊</button>
+           <button class="ok" onclick="${rateFn}('ok')">会了</button>
          </div>`
       : `<div class="r-ask">${qHtml}</div>
          <div class="r-cover sm" onclick="reveal()">
@@ -1455,6 +1569,45 @@ function rate(v){
   renderRecite(); haptic();
 }
 function finishRound(){ REND=true; RIDX=RQ.length; renderRecite(); markScroll(); haptic(); }
+
+/* ---------- 今日任务流程 ---------- */
+let TODAY_MODE=false;
+function openToday(){
+  TODAY_MODE=true;
+  RSTAT={ok:0,mid:0,no:0,skip:0,t:Date.now()};
+  setSub('rec');
+}
+function todayRate(v){
+  const td=ensureToday();
+  const e=RQ[RIDX]; if(!e) return;
+  const key=ekey(e);
+  srsSchedule(key,v);
+  if(v==='no'){
+    const pos=Math.min(td.idx+6, td.queue.length);
+    td.queue.splice(pos,0,key); td.reLearn=(td.reLearn||0)+1;
+  }
+  bumpLog();
+  td.idx++;
+  if(td.idx>=td.queue.length){
+    td.finished=true; td.idx=td.queue.length; save();
+    REND=true; RIDX=RQ.length; renderRecite(); markScroll(); haptic(); return;
+  }
+  save();
+  const m=entryMap();
+  RQ=td.queue.map(k=>m[k]).filter(Boolean);
+  RIDX=td.idx; RSHOW=false;
+  renderRecite(); haptic();
+}
+function todayAdd(n){
+  // 完成后加练：往今天队列追加未学条目
+  const td=ensureToday();
+  const have=new Set(td.queue);
+  const extra=expandEnt(PTS).filter(e=>!have.has(ekey(e)) && !S.srs[ekey(e)]).slice(0,n);
+  if(!extra.length) return;
+  td.queue=td.queue.concat(extra.map(ekey));
+  td.newN+=extra.length; td.finished=false; save();
+  openToday();
+}
 function roundAgain(){
   const a=RQ.slice();
   for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
@@ -2093,7 +2246,8 @@ async function makeCode(){
   const pw=keyOf();
   if(pw.length<4){ mtoast('先在下面输入密钥（至少 4 位）'); return; }
   S.key=pw; save();
-  const pack={v:1,at:Date.now(),status:S.status,fav:S.fav,due:S.due,seen:S.seen,log:S.log,ient:S.ient};
+  const pack={v:2,at:Date.now(),status:S.status,fav:S.fav,due:S.due,seen:S.seen,log:S.log,
+    ient:S.ient,srs:S.srs,today:S.today};
   try{
     const k=await kderive(pw);
     const iv=crypto.getRandomValues(new Uint8Array(12));
@@ -2137,9 +2291,11 @@ async function doRestore(){
     const o=JSON.parse(new TextDecoder().decode(pt));
     S.key=pw;
     S.status=o.status||{}; S.fav=o.fav||[]; S.due=o.due||{}; S.seen=o.seen||{}; S.log=o.log||{}; S.ient=o.ient||{};
+    S.srs=o.srs||{}; S.today=o.today||null;
+    EMAP=null; TODAY_MODE=false; RQ=[]; RIDX=0; REND=false;
     S.syncAt=o.at||Date.now();
     save(); applyPrefs(); renderAll();
-    mtoast('已恢复：'+Object.keys(S.status).length+' 条已掌握、'+(S.fav.length)+' 条收藏');
+    mtoast('已恢复：'+Object.keys(S.srs).length+' 条记忆、'+(S.fav.length)+' 条收藏');
     setTimeout(closeSheet,900);
   }catch(e){ mtoast('解密失败：密钥不对或同步码不完整'); }
 }
@@ -2254,7 +2410,8 @@ function openRange(){
   const wrong=PTS.filter(p=>S.status[p.n]==='no').length;
   const todo=PTS.filter(p=>S.status[p.n]!=='ok').length;
   const due=dueList().length, fav=(S.fav||[]).length;
-  openSheet('抽背范围',`
+  openSheet('背诵范围',`
+    <button class="opt ${TODAY_MODE?'on':''}" onclick="openToday();closeSheet()"><span>今日任务<small>到期复习 + 新学，按记忆曲线排期</small></span><span class="n">${todayProgress().total}</span></button>
     <button class="opt ${RSCOPE==='全部'?'on':''}" onclick="startRecite(PTS,'全部');closeSheet()"><span>全部 100 条<small>按原书顺序</small></span><span class="n">${PTS.length}</span></button>
     <button class="opt" onclick="startRecite(dueList(),'待复习');closeSheet()"><span>今日待复习<small>到期的条目优先</small></span><span class="n">${due}</span></button>
     <button class="opt" onclick="startRecite(PTS.filter(p=>S.status[p.n]!=='ok'),'未掌握');closeSheet()"><span>未掌握<small>没记住 + 模糊 + 没背过</small></span><span class="n">${todo}</span></button>
@@ -2353,6 +2510,13 @@ function setSub(m){
   document.querySelectorAll('.subseg button').forEach(b=>b.classList.toggle('on', b.dataset.s===m));
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on', b.dataset.v==='recite'));
   if(m==='clo'){ if(!document.getElementById('cCard').innerHTML) renderCloze(); }
+  else if(TODAY_MODE){
+    const td=ensureToday(), mp=entryMap();
+    RQ=td.queue.map(k=>mp[k]).filter(Boolean);
+    RIDX=td.idx; RSHOW=false; REND=td.finished; RSCOPE='今日任务';
+    if(!RSTAT) RSTAT={ok:0,mid:0,no:0,skip:0,t:Date.now()};
+    renderRecite(); markScroll();
+  }
   else { if(!RQ.length) startRecite(); else { renderRecite(); markScroll(); } }
   requestAnimationFrame(()=>window.scrollTo({top:0,behavior:'auto'}));
 }
@@ -2426,10 +2590,17 @@ window.addEventListener('scroll',()=>{
   at.rel='apple-touch-icon'; at.href=manifest.icons[0].src;
   document.head.appendChild(at);
 })();
+migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.1';
+const VER='2.2';
 const CHANGELOG=[
+ {v:'2.2',d:'2026-11-13',t:'今日任务与记忆曲线',items:[
+   '背诵改成今日任务：先背到期复习，再用新学补足到每日目标，背够就完成、当天打卡',
+   '每条独立记忆，按艾宾浩斯排期：10分钟→1小时→1天→2天→4天→7天→15天→30天→60天，会了升档、没记住回到10分钟并在今天稍后重背',
+   '每日目标支持自定义（1–460 条），不再只给四档',
+   '进度持久化：切到别的模块再回来，从刚背的那条继续，不重新开始',
+   '每条标新学/复习，完成页分开统计复习、新学、重学和连续打卡天数']},
  {v:'2.1',d:'2026-11-13',t:'速览排版与考点关联重做',items:[
    '速览色块重排：一句话不再被切成两半，逗号连着的句子、括号里没说完的内容都并回同一段，只有真正的小标题才单独成色块',
    '肖八考点关联全部重算：按考点正文里的原话对应，不再凭字面瞎跳；192 题有准确对应，其余如实标注「速览未收录」，不硬链',
