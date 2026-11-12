@@ -564,6 +564,9 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
   background:var(--card);color:var(--ink);font-size:11px;line-height:1.5;resize:vertical;outline:none;
   font-family:ui-monospace,Menlo,monospace;word-break:break-all}
 .sheet .tagline{font-size:10.5px;color:var(--red);margin-top:6px}
+.sheet .fsprev{font-size:calc(13.9px * var(--fs));line-height:1.85;color:var(--ink-2);margin:9px 0 0;
+  padding:10px 12px;border:1px dashed var(--line);border-radius:10px;letter-spacing:.01em}
+.sheet .fsprev em{font-style:normal;color:var(--ink-3);font-size:10.5px;display:block;margin-bottom:4px;letter-spacing:.1em}
 
 /* ============ 平板适配 ============ */
 @media (min-width:700px){
@@ -969,8 +972,13 @@ function applyPrefs(){
   const meta=document.getElementById('metaTheme');
   if(meta) meta.setAttribute('content', night()?'#14110D':'#F2ECDD');
 }
-function setTheme(t){ S.theme=t; save(); applyPrefs(); renderAll(); }
-function setFs(f){ S.fs=f; save(); applyPrefs(); }
+
+function segSync(){
+  document.querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on', b.dataset.t===(S.theme==='night'?'night':'light')));
+  document.querySelectorAll('[data-f]').forEach(b=>b.classList.toggle('on', b.dataset.f===(S.fs||'m')));
+}
+function setTheme(t){ S.theme=t; save(); applyPrefs(); renderAll(); segSync(); }
+function setFs(f){ S.fs=f; save(); applyPrefs(); segSync(); }
 
 /* ---------- 数据 ---------- */
 function dueList(){
@@ -1970,17 +1978,18 @@ function openSettings(){
     <div class="sheet-sec">
       <h4>外观</h4>
       <div class="seg-row">
-        <button class="${S.theme!=='night'?'on':''}" onclick="setTheme('light')">浅色（纸白）</button>
-        <button class="${S.theme==='night'?'on':''}" onclick="setTheme('night')">夜间（护眼）</button>
+        <button data-t="light" class="${S.theme!=='night'?'on':''}" onclick="setTheme('light')">浅色（纸白）</button>
+        <button data-t="night" class="${S.theme==='night'?'on':''}" onclick="setTheme('night')">夜间（护眼）</button>
       </div>
     </div>
     <div class="sheet-sec">
       <h4>正文字号</h4>
       <div class="seg-row">
-        <button class="${S.fs==='s'?'on':''}" onclick="setFs('s')">小</button>
-        <button class="${S.fs==='m'?'on':''}" onclick="setFs('m')">标准</button>
-        <button class="${S.fs==='l'?'on':''}" onclick="setFs('l')">大</button>
+        <button data-f="s" class="${S.fs==='s'?'on':''}" onclick="setFs('s')">小</button>
+        <button data-f="m" class="${S.fs==='m'?'on':''}" onclick="setFs('m')">标准</button>
+        <button data-f="l" class="${S.fs==='l'?'on':''}" onclick="setFs('l')">大</button>
       </div>
+      <div class="fsprev"><em>预览 · 当前字号</em>实践是检验真理的唯一标准，剩余价值来源于雇佣工人的剩余劳动。</div>
     </div>
     <div class="sheet-sec">
       <h4>学习</h4>
