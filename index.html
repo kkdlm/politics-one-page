@@ -485,11 +485,42 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .totop svg{width:18px;height:18px}
 
 /* ============ 刷题 ============ */
-.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 14px}
+/* AI 出题板块 */
+.ai-spec{margin-top:9px;padding:11px 12px;border-radius:10px;border:1px dashed color-mix(in srgb,#2e6e63 35%,var(--line));background:color-mix(in srgb,#2e6e63 6%,var(--card));font-size:11.5px;line-height:1.75;color:var(--ink-2)}
+.ai-spec b{display:block;font-family:var(--serif);font-size:12.5px;color:#2e6e63;margin-bottom:5px}
+.ai-spec ul{margin:0;padding-left:16px}
+.ai-spec li{margin:3px 0}
+.ai-sec-t{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 9px}
+.ai-sec-t b{font-family:var(--serif);font-size:13.5px;color:var(--ink)}
+.ai-sec-t span{font-size:10.5px;color:var(--ink-3)}
+.ai-row2{display:flex;gap:8px;align-items:center;margin:9px 0 8px}
+.ai-q{flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1px solid var(--line);background:var(--paper);
+  font-size:calc(12.5px * var(--fs));color:var(--ink);font-family:inherit}
+.ai-q:focus{outline:none;border-color:var(--red)}
+.ai-fold{width:100%;text-align:left;padding:9px 11px;border-radius:9px;border:1px dashed var(--line);
+  background:transparent;color:var(--ink-2);font-size:11.5px;font-family:inherit}
+.aip-list{max-height:290px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-top:8px;
+  border:1px solid var(--line);border-radius:10px;padding:5px;background:var(--paper)}
+.aip-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:9px 9px;
+  border:none;border-bottom:1px dashed color-mix(in srgb,var(--line) 70%,transparent);
+  background:transparent;font-family:inherit;font-size:calc(12.5px * var(--fs));color:var(--ink-2)}
+.aip-item:last-child{border-bottom:none}
+.aip-item .pn{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);flex:none}
+.aip-item .pt{flex:1;line-height:1.45}
+.aip-item.on{background:color-mix(in srgb,var(--red) 8%,var(--card));color:var(--ink);border-radius:8px}
+.aip-item.on .pn{color:var(--red)}
+.aip-item.on::after{content:'✓';color:var(--red);font-size:11px;flex:none}
+.ailog-row{display:flex;align-items:baseline;gap:9px;padding:7px 0;border-bottom:1px dashed color-mix(in srgb,var(--line) 70%,transparent);font-size:11.5px;color:var(--ink-2)}
+.ailog-row:last-child{border-bottom:none}
+.ailog-row span{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);flex:none}
+.ailog-row b{color:var(--red);font-size:12.5px;flex:none}
+.ailog-row i{font-style:normal;color:var(--ink-3);flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:360px){.mode-tabs{grid-template-columns:1fr} }
+.mode-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 14px}
 .mode-tab{text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:12px;
   padding:12px 13px;display:flex;flex-direction:column;gap:3px;transition:all .15s}
-.mode-tab b{font-size:calc(14.5px * var(--fs));font-family:var(--serif);color:var(--ink)}
-.mode-tab small{font-size:11px;color:var(--ink-3);line-height:1.4}
+.mode-tab b{font-size:calc(15px * var(--fs));font-family:var(--serif);color:var(--ink)}
+.mode-tab small{font-size:10.5px;color:var(--ink-3);line-height:1.45}
 .mode-tab.on{border-color:var(--red);background:color-mix(in srgb,var(--red) 7%,var(--card))}
 .mode-tab.on b{color:var(--red)}
 .qjump{background:transparent;border:0;padding:0;font:inherit;font-size:11px;color:var(--red);
@@ -2429,6 +2460,8 @@ function renderQuizSetup(){
         <b>普通模式</b><small>历年真题与考点模拟 · ${normal.length} 题</small></button>
       <button class="mode-tab ${QF.mode==='x8'?'on':''}" onclick="QF.mode='x8';renderQuizSetup()">
         <b>肖八模式</b><small>肖秀荣八套卷 · ${x8.length} 题</small></button>
+      <button class="mode-tab ${QF.mode==='ai'?'on':''}" onclick="QF.mode='ai';renderQuizSetup()">
+        <b>AI 出题</b><small>按考点现场生成 · 做题记录与错题</small></button>
     </div>`;
   const setN=s=>x8.filter(q=>q.set===s).length;
   const x8Panel=`
@@ -2457,16 +2490,6 @@ function renderQuizSetup(){
       <button class="opt" onclick="startQuick10()"><span><b>快速 10 题</b><small>从全部题库随机抽 10 题</small></span><span class="n">10</span></button>
       <button class="opt" onclick="startRealQuiz('wrong')"><span><b>错题重练</b><small>只练之前答错的题</small></span><span class="n">${wrongN}</span></button>
     </div>
-    <div class="ai-card">
-      <h3>按考点出题 <span class="src-badge src-ai">联网</span></h3>
-      <p>内置免费接口，无需密钥即可按考点即时出题；也可在设置里换成自己的接口。AI 题仅供巩固参考，请以真题为准。</p>
-      <div class="ai-row">
-        <button class="ai-btn primary" onclick="aiForCurrent()"><b>按当前考点出题</b><small>用速览里的考点</small></button>
-        <button class="ai-btn" onclick="aiRandomPoint()"><b>随机考点</b><small>抽一个考点生成</small></button>
-        <button class="ai-btn" onclick="openAISettings()"><b>接口设置</b><small>免费默认 · 可换密钥</small></button>
-      </div>
-      <div id="aiStatus"></div>
-    </div>
     <div class="tip">题库含历年真题（${years.filter(y=>y<2027).join('、')} 年）与紧扣原书的考点模拟题；每题标注来源，多选、少选、错选均不得分。作答记录与错题本仅保存在本机。</div>`;
   box.innerHTML=`
     <div class="sec-h" style="margin:2px 0 10px"><h2>刷题</h2><span class="more">共 ${REALQ.length} 题</span></div>
@@ -2476,7 +2499,7 @@ function renderQuizSetup(){
       <div class="qstat"><b>${doneN}</b><span>已做 · 正确率${accRate}%</span></div>
     </div>
     ${modeTabs}
-    ${QF.mode==='x8'?x8Panel:normalPanel}`;
+    ${QF.mode==='x8'?x8Panel:(QF.mode==='ai'?aiPanelHTML():normalPanel)}`;
 }
 function startX8Set(){
   let list;
@@ -2496,7 +2519,12 @@ function practicePoint(e,n){
   QZ={mode:'point',list,idx:0,sel:[],revealed:false,right:0,wrong:0};
   go('quiz'); renderQuiz();
 }
-function aiFromCard(e,n){ if(e)e.stopPropagation(); go('quiz'); renderQuizSetup(); aiForPoint(n); }
+function aiFromCard(e,n){
+  if(e)e.stopPropagation();
+  QF.mode='ai'; AIS.pts=[n]; AIS.open=false;
+  go('quiz'); renderQuizSetup();
+  setTimeout(aiStart,60);
+}
 function startQuick10(){
   const list=shuffle(REALQ.filter(q=>q.src!=='xiao8')).slice(0,10);
   QZ={mode:'quick10',list,idx:0,sel:[],revealed:false,right:0,wrong:0};
@@ -2533,6 +2561,7 @@ function expParts(exp){
   return e.split(re).map(s=>s.trim()).filter(Boolean);
 }
 function expHTML(q){
+  if(q.src==='ai') return '<p class="ex-lead" style="white-space:pre-wrap;line-height:1.75">'+esc(q.exp||'')+'</p>';
   const parts=expParts(q.exp||'');
   if(parts.length<2) return `<p class="ex-lead">${esc(q.exp||'')}</p>`;
   return parts.map((seg,i)=>{
@@ -2561,7 +2590,7 @@ function renderQuiz(){
     <div class="quiz-card">
       <div class="quiz-qmeta">
         ${srcBadge(q)}
-        <span class="tag">${q.src==='xiao8'?('第'+q.set+'套 · '+(q.subject||'')+' · '+(isMulti?'多选':'单选')):(yearLabel(q)+' · '+q.ch+' · '+(isMulti?'多选':'单选'))}</span>
+        <span class="tag">${q.src==='xiao8'?('第'+q.set+'套 · '+(q.subject||'')+' · '+(isMulti?'多选':'单选')):(q.src==='ai'?('AI 出题 · '+q.ch+' · '+(isMulti?'多选':'单选')):(yearLabel(q)+' · '+q.ch+' · '+(isMulti?'多选':'单选')))}</span>
         ${mainPt(q)?`<button class="qjump" onclick="openCardJump(${mainPt(q)})">速览第 ${pad3(mainPt(q))} 条</button>`:`<span class="qjump none">速览未收录</span>`}
       </div>
       <div class="quiz-stem">${esc(q.stem)}</div>
@@ -2622,7 +2651,10 @@ function confirmAnswer(){
   const correctSet=ansIdx(q).sort();
   const ok=arrEq(QZ.sel.slice().sort(),correctSet);
   QZ.lastCorrect=ok; QZ.revealed=true;
-  if(q.src==='ai'){ if(ok)QZ.right++;else QZ.wrong++; haptic(); renderQuiz(); return; }
+  if(q.src==='ai'){
+    if(ok)QZ.right++; else { QZ.wrong++; (QZ.miss=QZ.miss||[]).push(q); }
+    haptic(); renderQuiz(); return;
+  }
   if(ok){
     QZ.right++;
     S.qwrong=(S.qwrong||[]).filter(x=>x!==q.id);
@@ -2638,7 +2670,17 @@ function prevRealQ(){ if(QZ.idx===0) return; QZ.idx--; QZ.sel=[]; QZ.revealed=fa
 function quizHome(){ QZ=null; renderQuizSetup(); }
 function renderQuizResult(){
   const total=QZ.list.length, pct=Math.round(QZ.right/total*100);
-  S.quizLog[dkey(now())]={pct,right:QZ.right,total}; save();
+  if(QZ.mode==='ai'){
+    const t=(function(){const d=new Date();return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');})();
+    S.aiLog=(S.aiLog||[]).concat([{t:t,right:QZ.right,total:total,scope:(QZ.scope||'AI')}]).slice(-30);
+    const misses=(QZ.miss||[]);
+    let w=(S.aiWrong||[]).filter(q=>!misses.some(m=>m.stem===q.stem));
+    misses.forEach(q=>{ if(!w.some(x=>x.stem===q.stem)) w.push(q); });
+    S.aiWrong=w.slice(-60);
+  }else{
+    S.quizLog[dkey(now())]={pct,right:QZ.right,total}; save();
+  }
+  save();
   const box=document.getElementById('quizBody');
   box.innerHTML=`
     <div class="quiz-card quiz-result">
@@ -2648,12 +2690,258 @@ function renderQuizResult(){
       <h3>${pct>=90?'非常扎实':pct>=60?'继续巩固':'需要多练'}</h3>
       <p>答对 ${QZ.right} / ${total} 题 · 答错 ${QZ.wrong} 题</p>
       <div class="quiz-actions" style="max-width:340px;margin:0 auto">
-        <button onclick="quizHome()">返回首页</button>
-        <button class="primary" onclick="startRealQuiz('wrong')">错题重练</button>
+        <button onclick="quizHome()">${QZ.mode==='ai'?'回 AI 出题':'返回首页'}</button>
+        <button class="primary" onclick="${QZ.mode==='ai'?'aiStartWrong()':'startRealQuiz(\'wrong\')'}">${QZ.mode==='ai'?'重练这批错题（'+QZ.wrong+' 题）':'错题重练'}</button>
       </div>
     </div>`;
 }
 
+/* ---------- AI 出题板块（与普通题/肖八并列） ---------- */
+const AIS={ch:'all',pts:[],n:10,type:'mixed',engine:'local',q:'',open:false};
+const AI_N=[5,10,20,30];
+function aiScopePoints(){
+  const kw=(AIS.q||'').trim();
+  return PTS.filter(p=>{
+    if(AIS.ch!=='all' && p.ch!==AIS.ch) return false;
+    if(kw && (p.title+p.ch+p.sub).indexOf(kw)<0) return false;
+    return true;
+  });
+}
+function aiPtCount(){ return AIS.pts.length?AIS.pts.length:PTS.length; }
+function aiPanelHTML(){
+  const inScope=aiScopePoints();
+  const chChips=['全部','马原','毛中特','史纲','习思想','思修法基','时政','建国后','重要专题','三大辨析','会议大观','其他']
+    .filter((c,i)=>i===0||PTS.some(p=>p.ch===c))
+    .map(c=>`<button class="chip ${AIS.ch===c?'on':''}" onclick="AIS.ch='${c}';AIS.open=1;renderQuizSetup()">${c==='全部'?'全部 '+PTS.length:c+' '+PTS.filter(p=>p.ch===c).length}</button>`).join('');
+  const ptList=inScope.map(p=>`<button class="aip-item ${AIS.pts.includes(p.n)?'on':''}" onclick="aiTogglePt(${p.n})">
+      <span class="pn">${pad3(p.n)}</span><span class="pt">${esc(p.title)}</span></button>`).join('')||'<div class="hat-empty">没有匹配的考点</div>';
+  const logRows=(S.aiLog||[]).slice(-5).reverse().map(r=>`<div class="ailog-row"><span>${esc(r.t)}</span><b>${r.right}/${r.total}</b><i>${esc(r.scope)}</i></div>`).join('');
+  const wrongN=(S.aiWrong||[]).length;
+  return `
+  <div class="filter-card">
+    <div class="ai-sec-t"><b>1 · 圈范围</b><span>${AIS.pts.length?'已选 '+AIS.pts.length+' 个考点':'没选＝整个章节'}</span></div>
+    <div class="chips" style="flex-wrap:wrap;gap:7px">${chChips}</div>
+    <div class="ai-row2">
+      <input class="ai-q" placeholder="搜考点，如 剩余价值、遵义" value="${esc(AIS.q||'')}" oninput="AIS.q=this.value;renderQuizSetup()">
+      <button class="ghost sm" onclick="aiToggleAll()">${AIS.pts.length?'清空已选':'全选本组'}</button>
+    </div>
+    <button class="ai-fold" onclick="AIS.open=!AIS.open;renderQuizSetup()">${AIS.open?'收起考点清单 ▲':'挑具体考点（可多选） ▼'}</button>
+    ${AIS.open?`<div class="aip-list">${ptList}</div>`:''}
+  </div>
+  <div class="filter-card">
+    <div class="ai-sec-t"><b>2 · 题量与题型</b><span>${AIS.n} 题 · ${AIS.type==='single'?'全单选':AIS.type==='multi'?'全多选':'单选多选混着'}</span></div>
+    <div class="filter-line"><span class="fl-label">题量</span><div class="chips">
+      ${AI_N.map(x=>`<button class="chip ${AIS.n===x?'on':''}" onclick="AIS.n=${x};renderQuizSetup()">${x} 题</button>`).join('')}
+    </div></div>
+    <div class="filter-line"><span class="fl-label">题型</span><div class="chips">
+      <button class="chip ${AIS.type==='single'?'on':''}" onclick="AIS.type='single';renderQuizSetup()">单选</button>
+      <button class="chip ${AIS.type==='multi'?'on':''}" onclick="AIS.type='multi';renderQuizSetup()">多选</button>
+      <button class="chip ${AIS.type==='mixed'?'on':''}" onclick="AIS.type='mixed';renderQuizSetup()">混合</button>
+    </div></div>
+    <div class="filter-line"><span class="fl-label">引擎</span><div class="chips">
+      <button class="chip ${AIS.engine==='local'?'on':''}" onclick="AIS.engine='local';renderQuizSetup()">本地生成 · 离线可用</button>
+      <button class="chip ${AIS.engine==='net'?'on':''}" onclick="AIS.engine='net';renderQuizSetup()">联网 AI · 可选</button>
+    </div></div>
+    <div class="tip" style="margin:0">${AIS.engine==='local'
+      ?'本地生成只用原书本来就成句的一问一答和帽子题成组答案，题干与选项都是原话，离线可用，不会卡在接口上。'
+      :'联网出题走你自己配的 OpenAI 兼容接口，按下面的命题规范出题；没配、超时或题不合格，会自动退回本地生成。'}</div>
+    <button class="ai-fold" style="margin-top:8px" onclick="AIS.spec=!AIS.spec;renderQuizSetup()">${AIS.spec?'收起命题规范 ▲':'看命题规范（题面/选项/解析都按这套） ▼'}</button>
+    ${AIS.spec?aiSpecHTML():''}
+  </div>
+  <div class="quiz-setup">
+    <button class="opt" onclick="aiStart()"><span><b>开始出题</b><small>${aiPtCount()} 个考点里取 ${AIS.n} 题</small></span><span class="n">${AIS.n}</span></button>
+    <button class="opt" onclick="AIS.open=1;renderQuizSetup()"><span><b>先挑考点</b><small>只想练某一条就选它</small></span><span class="n">${AIS.pts.length||'›'}</span></button>
+    <button class="opt" onclick="aiStartWrong()"><span><b>AI 错题重练</b><small>上次没做对的 AI 题</small></span><span class="n">${wrongN}</span></button>
+    <button class="opt" onclick="openAISettings()"><span><b>接口设置</b><small>联网模式才需要</small></span><span class="n">⚙</span></button>
+  </div>
+  <div class="filter-card">
+    <div class="ai-sec-t"><b>3 · 做题记录</b><span>只存本机</span></div>
+    ${logRows||'<div class="hat-empty">还没出过题，点上面「开始出题」</div>'}
+  </div>
+  <div id="aiStatus"></div>`;
+}
+function aiTogglePt(n){
+  const i=AIS.pts.indexOf(n);
+  if(i>=0) AIS.pts.splice(i,1); else AIS.pts.push(n);
+  AIS.open=true; haptic(); renderQuizSetup();
+}
+function aiToggleAll(){
+  const inScope=aiScopePoints();
+  const allIn=inScope.length&&inScope.every(p=>AIS.pts.includes(p.n));
+  if(allIn) AIS.pts=AIS.pts.filter(n=>!inScope.some(p=>p.n===n));
+  else inScope.forEach(p=>{ if(!AIS.pts.includes(p.n)) AIS.pts.push(p.n); });
+  AIS.open=true; haptic(); renderQuizSetup();
+}
+/* 本地出题只用「原书本来就成句的一问一答」和「帽子题成组答案」，
+   不从句子中间切半截短语，题干与选项都保持原书原话 */
+const AI_QKEY=/什么|？|：|:|在于|包括|属于|是指|核心|根本|基本|本质|标志|前提|关键|目的|任务|意义|区别|特征|属性|性质|地位|作用|内容|形式|道路|方针|政策|原则|要求|条件|原因|依据|表现|特点/;
+function aiPureQ(t){
+  t=(t||'').trim();
+  if(t.length<4||t.length>44) return '';
+  if(/^[（(①-⑩0-9第]/.test(t)) return '';
+  if(!AI_QKEY.test(t)) return '';
+  if(/(一致|相同|不同|相反|相比)$/.test(t)) return '';
+  if((t.match(/[（(]/g)||[]).length!==(t.match(/[）)]/g)||[]).length) return '';
+  return t.replace(/[：:，,]\s*$/,'');
+}
+function aiPureA(t){
+  t=(t||'').trim();
+  if(/像|路标|口诀|记：|记:|谐音|顺口/.test(t)) return '';
+  if(t.length<2||t.length>26) return '';
+  if(/[。；;]/.test(t)) return '';
+  if(/^[（(①-⑩]/.test(t)) return '';
+  if(!/[\u4e00-\u9fa5A-Za-z]/.test(t)) return '';
+  return t;
+}
+let AI_MN_TXT=null;
+function aiMnTexts(){
+  if(AI_MN_TXT) return AI_MN_TXT;
+  const out=[];
+  PTS.forEach(p=>{
+    (itemsOf(p.n)||[]).forEach(it=>{
+      if(!it.mn) return;
+      const t=(it.a||[]).map(x=>x[0]).join('').trim();
+      if(t) out.push(t);
+    });
+  });
+  AI_MN_TXT=out; return out;
+}
+function aiIsMnemonic(t){
+  const mns=aiMnTexts();
+  return mns.some(m=>m && (m.includes(t)||t.includes(m)));
+}
+function aiPool(pts){
+  const out=[];
+  pts.forEach(n=>{
+    const p=PTS.find(x=>x.n===n); if(!p) return;
+    const its=itemsOf(n)||[];
+    its.forEach(it=>{
+      if(it.mn||it.label) return;   /* 口诀行、老师标注行不做题，免得干扰项里冒出“红星冈本”这种记诵口令 */
+      const q=(it.q||[]).map(x=>x[0]).join('').trim();
+      const a=aiPureA((it.a||[]).map(x=>x[0]).join('').trim());
+      const qq=aiPureQ(q);
+      if(!qq||!a) return;
+      if(qq.length<8) return;       /* 太短的题干没有主语（“失败的根本原因”），去掉 */
+      out.push({kind:'qa',n:n,ch:p.ch,tag:qq,a:a});
+    });
+  });
+  HAT_OK.forEach(h=>{
+    const ha=aiPureA(h[2]); if(!ha) return;
+    if(aiIsMnemonic(ha)) return;   /* “红星冈本”这类口令不当选项 */
+    out.push({kind:'hat',n:h[3],sub:h[0],hat:h[1],a:ha});
+  });
+  return out;
+}
+function aiNear(a,b){
+  const norm=t=>(t||'').replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g,'');
+  const x=norm(a), y=norm(b);
+  if(!x||!y) return false;
+  if(x===y) return true;
+  if(x.length>3&&y.length>3&&(x.includes(y)||y.includes(x))) return true;
+  const set=new Set(x.split(''));
+  let hit=0; y.split('').forEach(c=>{ if(set.has(c)) hit++; });
+  return hit/Math.max(y.length,1)>0.82;
+}
+function aiCleanDistract(ansArr, cands, k){
+  const ans=ansArr.join('');
+  const list=[...new Set(cands.filter(a=>{
+    const t=(a||'').trim();
+    if(!t||ansArr.indexOf(t)>=0) return false;
+    if(ansArr.concat([ans]).some(x=>aiNear(x,t))) return false;
+    if(aiPureA(t)==='') return false;
+    const base=ansArr[0]||'';
+    if(base && Math.abs(t.length-base.length)>10) return false;
+    if(aiIsMnemonic(t)) return false;
+    return true;
+  }))];
+  return shuffle(list).slice(0,k);
+}
+function aiQid(seed,i){ return 'ai-'+seed+'-'+i+'-'+Math.random().toString(36).slice(2,6); }
+function aiBuildLocal(){
+  const pts=(AIS.pts.length?AIS.pts:aiScopePoints().map(p=>p.n));
+  const pool=aiPool(pts);
+  if(!pool.length) return [];
+  const byPt={}; pool.forEach(c=>{ (byPt[c.n]=byPt[c.n]||[]).push(c); });
+  const answers=pool.map(c=>c.a);
+  const want=AIS.n, qs=[], used=new Set();
+  let guard=0;
+  while(qs.length<want && guard<want*24){
+    guard++;
+    const type=AIS.type==='mixed'?(Math.random()<0.6?'single':'multi'):AIS.type;
+    const c=pool[Math.floor(Math.random()*pool.length)];
+    if(!c) break;
+    const p=PTS.find(x=>x.n===c.n); if(!p) continue;
+    if(type==='multi'){
+      /* 多选：同一条考点里挑两条原书说法当正确项，干扰项取别条考点的原书说法 */
+      const grp=(byPt[c.n]||[]).filter(x=>x.a!==c.a).slice(0,3);
+      if(grp.length<1) continue;
+      let pair=[c].concat(grp).slice(0,2);
+      if(pair.length<2) continue;
+      if(aiNear(pair[0].a,pair[1].a)) continue;
+      const key='M'+c.n+pair.map(x=>x.a).join('|');
+      if(used.has(key)) continue; used.add(key);
+      const dis=aiCleanDistract(pair.map(x=>x.a), answers.filter(a=>!pair.some(t=>t.a===a)), 2);
+      if(dis.length<2) continue;
+      const opts=shuffle(pair.map(x=>x.a).concat(dis));
+      qs.push({id:aiQid(c.n,qs.length),year:null,src:'ai',type:'multi',ch:p.ch,point:c.n,
+        stem:'以下哪些说法属于第 '+pad3(c.n)+' 条「'+p.title+'」？',
+        opts:opts,ans:pair.map(t=>'ABCD'[opts.indexOf(t.a)]).sort(),
+        exp:'出自第 '+pad3(c.n)+' 条「'+p.title+'」：'+pair.map(t=>'（'+t.a+'）').join('、')});
+    }else{
+      const key='S'+c.n+'|'+(c.tag||'')+'|'+c.a;
+      if(used.has(key)) continue; used.add(key);
+      const body=(c.tag+'？').replace(/？？/,'？');
+      const stem=c.kind==='qa'
+        ? (body.indexOf(p.title)>=0 ? body : '【'+p.title+'】'+body)
+        : (c.sub+'的'+c.hat+'是什么？');
+      const sameCh=pool.filter(x=>x.ch===c.ch).map(x=>x.a);
+      let dis=aiCleanDistract([c.a], sameCh, 3);
+      if(dis.length<3) dis=aiCleanDistract([c.a], answers, 3);
+      if(dis.length<3) continue;
+      const opts=shuffle([c.a].concat(dis));
+      qs.push({id:aiQid(c.n,qs.length),year:null,src:'ai',type:'single',ch:p.ch,point:c.n,
+        stem:stem,opts:opts,ans:['ABCD'[opts.indexOf(c.a)]],
+        exp:'出自第 '+pad3(c.n)+' 条「'+p.title+'」：'+c.a});
+    }
+  }
+  return qs;
+}
+function aiScopeName(){
+  const n=AIS.pts.length?AIS.pts.length:aiScopePoints().length;
+  const label=AIS.ch==='all'?'全库':AIS.ch;
+  return label+' · '+n+' 考点 · '+(AIS.engine==='net'?'联网':'本地');
+}
+function aiEnter(qs){
+  if(!qs.length){ mtoast('这个范围里没凑出题，换个章节或选具体考点'); return; }
+  QZ={mode:'ai',list:qs,idx:0,sel:[],revealed:false,right:0,wrong:0,miss:[],scope:aiScopeName()};
+  go('quiz'); renderQuiz(); window.scrollTo({top:0}); haptic();
+}
+function aiStart(){
+  if(AIS.engine==='net'){ aiStartNet(); return; }
+  aiEnter(aiBuildLocal());
+}
+function aiStartWrong(){
+  const w=(S.aiWrong||[]).slice(0,40).map(q=>Object.assign({},q,{id:q.id+'-r'}));
+  if(!w.length){ mtoast('还没有 AI 错题，先出几题练练'); return; }
+  QZ={mode:'ai',list:w,idx:0,sel:[],revealed:false,right:0,wrong:0,miss:[],scope:'AI 错题重练'};
+  go('quiz'); renderQuiz(); haptic();
+}
+function aiStartNet(){
+  const pts=(AIS.pts.length?AIS.pts:PTS.map(p=>p.n));
+  const pick=shuffle(pts).slice(0,Math.max(2,Math.ceil(AIS.n/2)));
+  aiSetStatus('<div class="ai-status"><span class="spin"></span>正在联网出题（'+pick.length+' 个考点）……失败会自动改用本地生成</div>');
+  const per=Math.max(1,Math.min(3,Math.ceil(AIS.n/pick.length)));
+  const jobs=pick.map(n=>{
+    const p=PTS.find(x=>x.n===n);
+    return callAI(buildAIPrompt(p,per,AIS.type)).then(r=>aiParseNet(r,n)).catch(()=>[]);
+  });
+  Promise.all(jobs).then(lists=>{
+    let qs=[].concat.apply([],lists);
+    if(qs.length<AIS.n) qs=qs.concat(aiBuildLocal().filter(x=>!qs.some(y=>y.stem===x.stem)));
+    aiSetStatus('');
+    aiEnter(qs.slice(0,AIS.n));
+  });
+}
 /* ---------- AI 出题（免密钥默认 + 可自定义接口） ---------- */
 const AI_DEFAULT={provider:'pollinations',base:'https://text.pollinations.ai/openai',key:'',model:'openai'};
 function getAICfg(){ return S.aiCfg||AI_DEFAULT; }
@@ -2670,17 +2958,77 @@ function aiRandomPoint(){
   const p=PTS[Math.floor(Math.random()*PTS.length)];
   aiForPoint(p.n);
 }
-function buildAIPrompt(p){
-  return '你是考研政治（101）命题专家。请严格依据下面这个考点的真实内容，出 2 道高质量选择题（1 道单选 single、1 道多选 multi），贴近真题风格，考具体知识本身，绝不考章节名称、口诀名称或“大观”这类老师总结的标签。\n'+
-  '干扰项要用同领域真实、易混的说法，正确答案必须与考点一致。只返回严格 JSON，不要 markdown 代码块、不要任何多余文字，结构如下：\n'+
-  '{"questions":[{"type":"single","stem":"题干","opts":["选项内容","选项内容","选项内容","选项内容"],"ans":["A"],"exp":"简明解析"}]}\n'+
-  '注意：opts 里只写选项正文，不要带 A./B. 等字母前缀（界面会自动显示）。多选的 ans 至少含两个字母。考点如下：\n【'+p.ch+'·第'+p.n+'条 '+p.title+'】\n'+pointPlain(p);
+/* 出题规范：联网接口和本地生成都按这一套走，保证题面/选项/解析格式统一 */
+const AI_SPEC={
+  title:'命题规范（每道题都必须满足）',
+  rules:[
+    '只考这一个考点原文里的知识，不考“第几条”“口诀叫什么”“属于哪一章”这类记忆标签；不得超纲、不得编造原书没有的说法。',
+    '单选：4 个选项，只有 1 个正确；多选：4 个选项，2–3 个正确，少选错选都算错。',
+    '题干不超过 90 字，选项不超过 30 字；题干要把条件说完整，不能只写“下列说法正确的是”。',
+    '干扰项必须是同领域真实、易混的概念或同类表述，不能是“以上都对”“以上都不对”“与题干无关”这类废选项；也不能靠明显荒谬凑数。',
+    '四个选项同一逻辑层级、字数相近；正确答案不能因为最长/最短而被一眼看出。',
+    '解析固定四段，缺一段就算不合格：【考点】第 NNN 条 标题；【答案】正确项字母；【为什么】1–3 句，点出原文依据；【干扰项】逐个说清错在哪。'
+  ]
+};
+function aiSpecHTML(){
+  return `<div class="ai-spec"><b>${AI_SPEC.title}</b><ul>${AI_SPEC.rules.map(r=>'<li>'+esc(r)+'</li>').join('')}</ul></div>`;
+}
+function buildAIPrompt(p,per,kind){
+  per=per||2; kind=kind||'mixed';
+  const what=kind==='single'?per+' 道单选题（type 全部为 single，ans 只含 1 个字母）'
+    :kind==='multi'?per+' 道多选题（type 全部为 multi，ans 含 2–3 个字母）'
+    :per+' 道选择题（single 与 multi 都要有，多选至少 1 道）';
+  return [
+'你是考研政治（101）的命题老师，按真题风格给下面这一个考点出题。',
+'【题目要求】',
+'1) 出 '+what+'。',
+'2) 只考该考点原文里的知识，绝不考“第几条”“口诀名称”“章节归类”这类标签，不得超纲，不得写原书没有的观点。',
+'3) 单选 4 个选项、只 1 个正确；多选 4 个选项、2–3 个正确。',
+'4) 题干 ≤90 字，选项 ≤30 字，选项不写 A./B. 前缀；同一题四个选项同层级、字数相近。',
+'5) 干扰项必须是同领域真实、易混的概念（如把“实践性”换成“科学性”“阶级性”），不许用“以上都对/以上都不对/与题干无关”这类废选项，也不许明显荒谬凑数。',
+'6) 题干要完整说清问什么，禁止只写“下列说法正确的是”（多选题问“属于本条的是”可以）。',
+'【解析格式】每题 exp 必须严格写成这四段，缺一段视为不合格：',
+'【考点】第 NNN 条 标题',
+'【答案】正确项字母',
+'【为什么】1–3 句，说明依据的原文要点',
+'【干扰项】逐个说明每个错误选项错在哪（每项一句）',
+'【输出格式】只输出严格 JSON，不要 ``` 代码块、不要任何解释文字：',
+'{"questions":[{"type":"single","stem":"题干","opts":["选项1","选项2","选项3","选项4"],"ans":["A"],"exp":"【考点】第 002 条 马克思主义\\n【答案】A\\n【为什么】……\\n【干扰项】B 项……"}]}',
+'【考点原文】',
+'第 '+p.n+' 条 · '+p.ch+' · '+p.title,
+pointPlain(p)
+  ].join('\n');
 }
 function extractJSON(text){
   let t=text.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
   const s=t.indexOf('{'), e=t.lastIndexOf('}');
   if(s>=0&&e>s) t=t.slice(s,e+1);
   return JSON.parse(t);
+}
+function aiNetBad(q){
+  if(!q.stem||q.stem.length<6||q.stem.length>120) return true;
+  if(!Array.isArray(q.opts)||q.opts.length<4) return true;
+  const opts=q.opts.map(t=>String(t).trim());
+  if(opts.some(t=>!t||t.length>30)) return true;
+  if(new Set(opts).size!==opts.length) return true;
+  if(opts.some(t=>/以上(都|均)|以上都|都不对|都正确|无关/.test(t))) return true;
+  const ans=(q.ans||[]).map(a=>String(a).toUpperCase()).filter(a=>'ABCD'.includes(a));
+  if(q.type==='multi'?ans.length<2||ans.length>3:ans.length!==1) return true;
+  return false;
+}
+function aiParseNet(raw,n){
+  const p=PTS.find(x=>x.n===n); if(!p) return [];
+  try{
+    const obj=extractJSON(raw);
+    const arr=Array.isArray(obj.questions)?obj.questions:[];
+    return arr.filter(q=>!aiNetBad(q)).map((q,i)=>{
+      const ans=(q.ans||[]).map(a=>String(a).toUpperCase()).filter(a=>'ABCD'.includes(a));
+      return {id:aiQid(n,i),year:null,src:'ai',type:q.type==='multi'?'multi':'single',ch:p.ch,point:n,
+        stem:String(q.stem||'').trim(),
+        opts:q.opts.map(t=>String(t).replace(/^\s*[A-DＡ-Ｄ][.、．\)）]\s*/,'').trim()),
+        ans:ans,exp:String(q.exp||('出自第 '+pad3(n)+' 条「'+p.title+'」'))};
+    });
+  }catch(e){ return []; }
 }
 async function callAI(prompt){
   const cfg=getAICfg();
@@ -3447,8 +3795,17 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.17';
+const VER='2.18';
 const CHANGELOG=[
+ {v:'2.18',d:'2026-11-13',t:'AI 出题独立成板块：能选范围、选量、选题型、记记录',items:[
+   'AI 出题从速览卡片的小按钮提成刷题页第三个板块，和普通模式、肖八模式并列',
+   '范围：章节筛选、关键字搜考点、最多可勾选 100 条里的任意几条，没勾＝整个章节',
+   '题量与题型：5/10/20/30 题，单选、多选、混合三档，出题前就能定',
+   '本地生成（默认，离线可用）：只用原书本来就成句的一问一答＋帽子题成组答案，题干和选项都是原书原话，不会切出半截短语；口诀行、老师标注行不入题',
+   '联网 AI（可选）：内置命题规范——只考本条考点、单选 4 选 1、多选 4 选 2–3、题干≤90字、选项≤30字、禁“以上都对”类废选项、干扰项须同领域易混；解析固定四段【考点】【答案】【为什么】【干扰项】；接口没配/超时/题不合格会自动退回本地生成',
+   '做题记录：每轮出完记一条（时间、范围、正确率），最近 5 轮留在面板上',
+   '错题记录：AI 题做错逐题落库（最多 60 条），结果页和面板都能一键“AI 错题重练”',
+   '速览卡片上的“AI 出题”按钮现在直接跳到 AI 板块、只选这一条考点生成，不再卡联网接口']},
  {v:'2.17',d:'2026-11-13',t:'选帽自测：四顶帽子打乱，只选对的那一顶',items:[
    '帽子题页新增「选帽自测 49 题」：题干给主体和帽子（如“中国特色社会主义法治体系的『前提』是什么”），四个选项全是真实答案，只有一个对',
    '干扰项优先取同一主体的其它帽子；主体帽子不够时取别的主体里同名帽子（本质、根本、前提…），再不够才用全书答案，所以选项都像这道题的答案，不掺无关句子',
