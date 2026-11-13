@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: fetch html
-        run: curl -fsSL --retry 3 -o index.html "https://aka.doubaocdn.com/s/PkQS2tFNlp"
+        run: curl -fsSL --retry 3 -o index.html "https://aka.doubaocdn.com/s/N2gV5wh3IR"
       - name: commit
         run: |
           git config user.name "github-actions[bot]"
