@@ -525,6 +525,13 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .ai-spec b{display:block;font-family:var(--serif);font-size:12.5px;color:#2e6e63;margin-bottom:5px}
 .ai-spec ul{margin:0;padding-left:16px}
 .ai-spec li{margin:3px 0}
+.ait-list{margin-top:10px}
+.ait-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.ait-row b{color:var(--ink)}
+.ait-row i{font-style:normal;font-size:11.5px;color:var(--ink-3)}
+.ait-row i.ok{color:#3f7d52}
+.ait-row i.bad{color:var(--red)}
+.ait-row i.wait{color:var(--ink-3)}
 .ai-num{width:70px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-family:var(--mono);font-size:13px;color:var(--ink);text-align:center}
 .ai-numtip{font-size:11px;color:var(--ink-3)}
 .ai-sec-t{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 9px}
@@ -2835,7 +2842,7 @@ function renderQuizResult(){
 }
 
 /* ---------- AI 出题板块（与普通题/肖八并列） ---------- */
-const AIS={ch:'all',pts:[],n:10,type:'mix5',engine:'local',q:'',open:false};
+const AIS={ch:'all',pts:[],n:10,type:'mix5',q:'',open:false};
 const AI_QUICK=[5,10,15,20,30,50];
 function aiCount(mode,type){
   const m=mode||AIS.type;
@@ -2898,9 +2905,7 @@ function aiPanelHTML(){
       <button class="chip ${AIS.type==='single'?'on':''}" onclick="AIS.type='single';renderQuizSetup()">只单选</button>
       <button class="chip ${AIS.type==='multi'?'on':''}" onclick="AIS.type='multi';renderQuizSetup()">只多选</button>
     </div></div>
-    <div class="tip" style="margin:0">${AIS.engine==='local'
-      ?'本地生成只用原书本来就成句的一问一答，题干和选项都是原书原话；不碰帽子题——帽子题有自己的专题模块，混进来容易误导。'
-      :'联网出题按下面的命题规范出，当前引擎「'+esc(getAICfg().name)+'」；连不上会自动换引擎，再不行用本地生成兜底。'}</div>
+    <div class="tip" style="margin:0">题目全部由大模型按考研真题风格现出，当前引擎「${esc(getAICfg().name)}」。主引擎连不上去会自动换免密钥引擎；都没出成会写明原因，并给出「换引擎 / 填密钥」入口——不会拿原书句子拼题糊弄。免费接口额度小，想稳定出题建议在设置里填 DeepSeek 或硅基流动的 key。</div>
 
   </div>
   <div class="quiz-setup">
@@ -2908,7 +2913,7 @@ function aiPanelHTML(){
     <button class="opt" onclick="AIS.open=1;renderQuizSetup()"><span><b>先挑考点</b><small>只想练某一条就选它</small></span><span class="n">${AIS.pts.length||'›'}</span></button>
     <button class="opt" onclick="aiStartWrong()"><span><b>AI 错题重练</b><small>上次没做对的 AI 题</small></span><span class="n">${wrongN}</span></button>
     <button class="opt" onclick="openWrongBook('ai')"><span><b>看 AI 错题本</b><small>题干＋答案＋解析，直接翻</small></span><span class="n">${wrongN}</span></button>
-    <button class="opt" onclick="openAISettings()"><span><b>接口设置</b><small>联网模式才需要</small></span><span class="n">⚙</span></button>
+    <button class="opt" onclick="openAISettings()"><span><b>引擎设置</b><small>换引擎 / 填密钥</small></span><span class="n">⚙</span></button>
   </div>
   <div class="filter-card">
     <div class="ai-sec-t"><b>3 · 做题记录</b><span>只存本机</span></div>
@@ -2966,123 +2971,21 @@ function aiIsMnemonic(t){
   const mns=aiMnTexts();
   return mns.some(m=>m && (m.includes(t)||t.includes(m)));
 }
-function aiPool(pts){
-  const out=[];
-  pts.forEach(n=>{
-    const p=PTS.find(x=>x.n===n); if(!p) return;
-    const its=itemsOf(n)||[];
-    its.forEach(it=>{
-      if(it.mn||it.label) return;   /* 口诀行、老师标注行不做题，免得干扰项里冒出“红星冈本”这种记诵口令 */
-      const q=(it.q||[]).map(x=>x[0]).join('').trim();
-      const a=aiPureA((it.a||[]).map(x=>x[0]).join('').trim());
-      const qq=aiPureQ(q);
-      if(!qq||!a) return;
-      if(qq.length<8) return;       /* 太短的题干没有主语（“失败的根本原因”），去掉 */
-      out.push({kind:'qa',n:n,ch:p.ch,tag:qq,a:a});
-    });
-  });
-  return out;
-}
-function aiNear(a,b){
-  const norm=t=>(t||'').replace(/[^\u4e00-\u9fa5A-Za-z0-9]/g,'');
-  const x=norm(a), y=norm(b);
-  if(!x||!y) return false;
-  if(x===y) return true;
-  if(x.length>3&&y.length>3&&(x.includes(y)||y.includes(x))) return true;
-  const set=new Set(x.split(''));
-  let hit=0; y.split('').forEach(c=>{ if(set.has(c)) hit++; });
-  return hit/Math.max(y.length,1)>0.82;
-}
-function aiCleanDistract(ansArr, cands, k){
-  const ans=ansArr.join('');
-  const list=[...new Set(cands.filter(a=>{
-    const t=(a||'').trim();
-    if(!t||ansArr.indexOf(t)>=0) return false;
-    if(ansArr.concat([ans]).some(x=>aiNear(x,t))) return false;
-    if(aiPureA(t)==='') return false;
-    const base=ansArr[0]||'';
-    if(base && Math.abs(t.length-base.length)>10) return false;
-    if(aiIsMnemonic(t)) return false;
-    return true;
-  }))];
-  return shuffle(list).slice(0,k);
-}
 function aiQid(seed,i){ return 'ai-'+seed+'-'+i+'-'+Math.random().toString(36).slice(2,6); }
-function aiBuildLocal(){
-  const pts=(AIS.pts.length?AIS.pts:aiScopePoints().map(p=>p.n));
-  const pool=aiPool(pts);
-  if(!pool.length) return [];
-  const byPt={}; pool.forEach(c=>{ (byPt[c.n]=byPt[c.n]||[]).push(c); });
-  const answers=pool.map(c=>c.a);
-  const want=aiN(), qs=[], used=new Set();
-  const plan=[];   /* 先按真题配比排好每套的题型 */
-  const split=aiSplit(aiN());
-  for(let k=0;k<split.single;k++) plan.push('single');
-  for(let k=0;k<split.multi;k++) plan.push('multi');
-  /* 多选和单选交错，别一上来连着好几道多选 */
-  if(split.multi && split.single){
-    const sp=[...plan]; plan.length=0;
-    for(let k=0;k<Math.max(split.single,split.multi);k++){
-      if(sp.shift()) plan.push('single');
-      if(sp.pop()) plan.push('multi');
-    }
-    while(plan.length<aiN()) plan.push('single');
-  }
-  let guard=0;
-  while(qs.length<want && guard<want*30){
-    guard++;
-    const type=plan[qs.length]||'single';
-    const c=pool[Math.floor(Math.random()*pool.length)];
-    if(!c) break;
-    const p=PTS.find(x=>x.n===c.n); if(!p) continue;
-    if(type==='multi'){
-      const grp=(byPt[c.n]||[]).filter(x=>x.a!==c.a).slice(0,3);
-      if(grp.length<1) continue;
-      let pair=[c].concat(grp).slice(0,2);
-      if(pair.length<2) continue;
-      if(aiNear(pair[0].a,pair[1].a)) continue;
-      const key='M'+c.n+pair.map(x=>x.a).join('|');
-      if(used.has(key)) continue; used.add(key);
-      const dis=aiCleanDistract(pair.map(x=>x.a), answers.filter(a=>!pair.some(t=>t.a===a)), 2);
-      if(dis.length<2) continue;
-      const opts=shuffle(pair.map(x=>x.a).concat(dis));
-      qs.push({id:aiQid(c.n,qs.length),year:null,src:'ai',type:'multi',ch:p.ch,point:c.n,
-        stem:'以下哪些说法出现在第 '+pad3(c.n)+' 条「'+p.title+'」的原文里？',
-        opts:opts,ans:pair.map(t=>'ABCD'[opts.indexOf(t.a)]).sort(),
-        exp:'【答案】'+pair.map(t=>'ABCD'[opts.indexOf(t.a)]).sort().join('')+'\n【考点定位】'+p.ch+' · 第 '+pad3(c.n)+' 条 '+p.title+'\n【详细解析】'+pair.map(t=>'（'+t.a+'）').join('、')+'都是本条的原文说法。\n【错项分析】其余选项是别条考点的原书说法，属于张冠李戴。\n【避坑技巧】先认主体，再认“本条出了哪几句”，跨条的句子直接排除。'});
-    }else{
-      const key='S'+c.n+'|'+(c.tag||'')+'|'+c.a;
-      if(used.has(key)) continue; used.add(key);
-      const body=(c.tag+'？').replace(/？？/,'？');
-      const stem=(body.indexOf(p.title)>=0?body:'【'+p.title+'】'+body);
-      const sameCh=pool.filter(x=>x.ch===c.ch).map(x=>x.a);
-      let dis=aiCleanDistract([c.a], sameCh, 3);
-      if(dis.length<3) dis=aiCleanDistract([c.a], answers, 3);
-      if(dis.length<3) continue;
-      const opts=shuffle([c.a].concat(dis));
-      qs.push({id:aiQid(c.n,qs.length),year:null,src:'ai',type:'single',ch:p.ch,point:c.n,
-        stem:stem,opts:opts,ans:['ABCD'[opts.indexOf(c.a)]],
-        exp:'【答案】'+'ABCD'[opts.indexOf(c.a)]+'\n【考点定位】'+p.ch+' · 第 '+pad3(c.n)+' 条 '+p.title+'\n【详细解析】原书这一条写的就是：'+c.a+'。\n【错项分析】其余选项是别条考点的原书说法，主体或条件对不上。\n【避坑技巧】把主体和条件先圈出来，对不上主体的一律排除。'});
-    }
-  }
-  return qs;
-}
 function aiScopeName(){
   const n=AIS.pts.length?AIS.pts.length:aiScopePoints().length;
   const label=AIS.ch==='all'?'全库':AIS.ch;
-  const eng=AIS.lastEngine||(AIS.engine==='net'?getAICfg().name:'本地生成');
+  const eng=AIS.lastEngine||getAICfg().name;
   return label+' · '+n+' 考点 · '+eng;
 }
 function aiEnter(qs){
-  if(!qs.length){ mtoast('这个范围里没凑出题，换个章节或选具体考点'); return; }
+  if(!qs.length){ mtoast('这次没出成，换引擎或换范围再试'); return; }
   QZ={mode:'ai',list:qs,idx:0,sel:[],revealed:false,right:0,wrong:0,miss:[],scope:aiScopeName()};
   go('quiz'); renderQuiz(); window.scrollTo({top:0}); haptic();
 }
 function aiStart(){
   AIS.lastEngine=null;
-  if(AIS.engine==='net'){ aiStartNet(); return; }
-  AIS.lastEngine='本地生成';
-  aiEnter(aiBuildLocal());
+  aiStartNet();
 }
 function aiStartWrong(){
   const w=(S.aiWrong||[]).slice(0,40).map(q=>Object.assign({},q,{id:q.id+'-r'}));
@@ -3095,33 +2998,49 @@ async function aiStartNet(){
   const cfg=getAICfg();
   if(!aiEngineReady(cfg)){ mtoast('先到「引擎设置」里把 '+cfg.name+' 的 key 填上'); openAISettings(); return; }
   const need=aiN();
-  const pick=shuffle(pts).slice(0,Math.min(pts.length,Math.max(1,Math.min(8,Math.ceil(need/2)))));
-  const perPoint=Math.max(1,Math.ceil(need/pick.length));
-  aiSetStatus('<div class="ai-status"><span class="spin"></span>正在用「'+esc(cfg.name)+'」出 '+need+' 题（'+pick.length+' 个考点，最多等 25 秒）……连不上会换引擎，再不行用本地生成</div>');
-  const rs=await Promise.all(pick.map(n=>aiNetOnce([n],perPoint,AIS.type)));
-  let qs=[], engine='';
-  rs.forEach(r=>{
-    if(!r.qs.length) return;
-    engine=r.engine;
-    r.qs.forEach(q=>{ if(!qs.some(x=>x.stem===q.stem)) qs.push(q); });
-  });
-  if(qs.length<aiN()){
-    const fill=aiBuildLocal();
-    fill.forEach(x=>{ if(qs.length<aiN() && !qs.some(y=>y.stem===x.stem)) qs.push(x); });
-    if(!engine) engine='本地生成';
+  const split=aiSplit(need);
+  const plan=[]; for(let i=0;i<split.single;i++) plan.push('single'); for(let i=0;i<split.multi;i++) plan.push('multi');
+  /* 交错：单多交替，别连着几道多选 */
+  const ordered=[]; const s1=[...Array(split.single)].map(()=>'single'); const m1=[...Array(split.multi)].map(()=>'multi');
+  while(s1.length||m1.length){ if(s1.length) ordered.push(s1.shift()); if(m1.length) ordered.push(m1.shift()); }
+  let qs=[], engine=cfg.name;
+
+  if(cfg.k==='pollinations'){
+    /* 免费接口输入有限额：一次只要 1 题，按顺序出，边出边报进度 */
+    const pool=shuffle(pts); let fails=0;
+    for(let i=0;i<ordered.length;i++){
+      const pt=pool[i%pool.length];
+      aiSetStatus('<div class="ai-status"><span class="spin"></span>「'+esc(cfg.name)+'」正在出第 '+(i+1)+' / '+ordered.length+' 题（免费接口一次一题，慢一点）……</div>');
+      const r=await aiNetOnce([pt],1,ordered[i]);
+      if(r.qs.length){ qs.push(r.qs[0]); engine=r.engine||engine; fails=0; }
+      else { fails++; if(fails>=3){ aiSetStatus(''); aiSetStatus('<div class="ai-status bad">免费接口连续 3 次没出成：'+esc(r.err||'被限流或超时')+'<div class="ai-status-act"><button class="ghost sm" onclick="openAISettings()">换引擎 / 填密钥</button><button class="ghost sm" onclick="aiStart()">再试一次</button></div></div>'); if(qs.length) break; return; } }
+    }
+  }else{
+    /* 自带 key 的引擎：多点并行，多点一起要 */
+    const pick=shuffle(pts).slice(0,Math.min(pts.length,Math.max(1,Math.min(8,Math.ceil(need/2)))));
+    const perPoint=Math.max(1,Math.ceil(need/pick.length));
+    aiSetStatus('<div class="ai-status"><span class="spin"></span>正在用「'+esc(cfg.name)+'」出 '+need+' 题（'+pick.length+' 个考点）……</div>');
+    const rs=await Promise.all(pick.map(n=>aiNetOnce([n],perPoint,AIS.type)));
+    rs.forEach(r=>{ if(!r.qs.length) return; engine=r.engine||engine; r.qs.forEach(q=>{ if(!qs.some(x=>x.stem===q.stem)) qs.push(q); }); });
   }
+
   aiSetStatus('');
-  if(!qs.length){ mtoast('没出出来，换个引擎或把题数调小再试'); return; }
+  if(!qs.length){
+    const why='引擎没返回合格题目（可能是限流、超时或继续用免费额度）';
+    aiSetStatus('<div class="ai-status bad">这次没出成：'+why+'<div class="ai-status-act"><button class="ghost sm" onclick="openAISettings()">换引擎 / 填密钥</button><button class="ghost sm" onclick="aiStart()">再试一次</button></div></div>');
+    return;
+  }
   AIS.lastEngine=engine;
-  aiEnter(qs.slice(0,aiN()));
+  if(qs.length<need) mtoast('只出了 '+qs.length+' 题（要 '+need+' 题），可换引擎再试');
+  aiEnter(qs.slice(0,need));
 }
 /* ---------- AI 出题：多引擎（免密钥 / 自带密钥 / 自定义） ---------- */
 const AI_ENGINES=[
-  {k:'pollinations',n:'Pollinations',free:1,base:'https://text.pollinations.ai/openai',model:'openai',note:'公共免密钥接口，能用但速度看运气'},
+   {k:'pollinations',n:'Pollinations',free:1,base:'https://text.pollinations.ai/openai',model:'openai-fast',note:'免密钥，但免费额度很小，出长题容易 402；只适合试一下'},
   {k:'gemini',n:'Gemini',base:'https://generativelanguage.googleapis.com/v1beta/openai',model:'gemini-2.0-flash',note:'ai.google.dev 免费申请 key'},
   {k:'groq',n:'Groq',base:'https://api.groq.com/openai/v1',model:'llama-3.3-70b-versatile',note:'console.groq.com 有免费额度，需 key'},
-  {k:'deepseek',n:'DeepSeek',base:'https://api.deepseek.com/v1',model:'deepseek-chat',note:'platform.deepseek.com 申请 key'},
-  {k:'siliconflow',n:'硅基流动',base:'https://api.siliconflow.cn/v1',model:'Qwen/Qwen2.5-7B-Instruct',note:'cloud.siliconflow.cn 有免费模型，需 key'},
+   {k:'deepseek',n:'DeepSeek（推荐）',base:'https://api.deepseek.com/v1',model:'deepseek-chat',note:'platform.deepseek.com 注册拿 key，国内直连最稳'},
+   {k:'siliconflow',n:'硅基流动（国内）',base:'https://api.siliconflow.cn/v1',model:'Qwen/Qwen2.5-7B-Instruct',note:'cloud.siliconflow.cn 注册送额度，国内可直连'},
   {k:'openrouter',n:'OpenRouter',base:'https://openrouter.ai/api/v1',model:'meta-llama/llama-3.3-70b-instruct:free',note:'openrouter.ai 有免费模型，需 key'},
   {k:'custom',n:'自定义',base:'',model:'',note:'任何 OpenAI 兼容接口'}
 ];
@@ -3177,6 +3096,17 @@ function buildAIPrompt(p,per,kind){
 pointPlain(p)
   ].join('\n');
 }
+function buildAIPromptFree(p,kind){
+  const t=kind==='multi'?'多选（4 选项，2–3 个正确）':'单选（4 选项，1 个正确）';
+  const plain=pointPlain(p).slice(0,180);
+  return ['你是考研政治命题阅卷老师，只出 1 道'+t+'题，贴真题难度。',
+  '考点：第'+p.n+'条 '+p.ch+'·'+p.title,
+  '原书要点：'+plain,
+  '要求：考易混辨析或偷换主体/条件，4 个选项同层级，不用“以上都对”，题干≤60字，选项≤25字。',
+  '解析五项齐全且简短：【答案】【考点定位】【详细解析】【错项分析】【避坑技巧】。',
+  '只输出 JSON：{"questions":[{"type":"'+(kind==='multi'?'multi':'single')+'","stem":"…","opts":["…","…","…","…"],"ans":["A"],"exp":"【答案】…\n【考点定位】…\n【详细解析】…\n【错项分析】…\n【避坑技巧】…"}]}'
+  ].join('\n');
+}
 function extractJSON(text){
   let t=text.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
   const s=t.indexOf('{'), e=t.lastIndexOf('}');
@@ -3221,7 +3151,7 @@ async function callAI(prompt,cfg,ms){
   let resp;
   try{
     resp=await fetch(url,{method:'POST',headers,
-      body:JSON.stringify({model:cfg.model,temperature:0.7,messages:[{role:'user',content:prompt}]}),
+      body:JSON.stringify({model:cfg.model,temperature:0.7,max_tokens:(cfg.k==='pollinations'?900:1200),messages:[{role:'user',content:prompt}]}),
       signal:ctrl.signal});
   }finally{ clearTimeout(timer); }
   if(!resp.ok) throw new Error(cfg.name+' 返回 '+resp.status);
@@ -3230,7 +3160,7 @@ async function callAI(prompt,cfg,ms){
   if(!content) throw new Error(cfg.name+' 返回内容为空');
   return content;
 }
-/* 一次出题：主引擎不通就退到免密钥的 Pollinations，再不行用本地生成兜底 */
+/* 一次出题：主引擎不通就退到免密钥的 Pollinations；都不通就如实报错，不本地拼题 */
 async function aiNetOnce(pts,per,kind){
   const tried=[];
   let cfg=getAICfg();
@@ -3239,7 +3169,9 @@ async function aiNetOnce(pts,per,kind){
   for(const e of engines){
     if(!aiEngineReady(e)) continue;
     try{
-      const raw=await callAI(buildAIPrompt(PTS.find(p=>p.n===pts[0]),per,kind),e);
+      const pp=PTS.find(p=>p.n===pts[0]);
+      const prompt=(e.k==='pollinations')?buildAIPromptFree(pp,kind):buildAIPrompt(pp,per,kind);
+      const raw=await callAI(prompt,e,(e.k==='pollinations')?22000:15000);
       const qs=aiParseNet(raw,pts[0]);
       if(qs.length) return {qs:qs,engine:e.name};
       tried.push(e.name+' 返回的题不合格');
@@ -3259,7 +3191,7 @@ async function aiForPoint(n){
     go('quiz'); renderQuiz(); haptic();
   }catch(err){
     aiSetStatus('<div class="ai-status" style="border-color:var(--red);color:var(--red)">联网出题失败：'+esc((err&&err.message)||err)+
-      '。可以在设置里换引擎，或直接用本地生成。</div>');
+      '。可以在设置里换个引擎，或把密钥填对再试。</div>');
   }
 }
 function openAISettings(){
@@ -3286,7 +3218,8 @@ function openAISettings(){
       <div class="hint2">${esc(AI_ENGINES.find(x=>x.k===cur).note)}。密钥只存在本机 localStorage，不会上传到任何地方。</div>
       <div id="aiTestOut"></div>
       <div style="display:flex;gap:9px;margin-top:14px">
-        <button class="ghost" style="flex:1;padding:11px" onclick="aiTestConn()">测试连接</button>
+        <button class="ghost" style="flex:1;padding:11px" onclick="aiSelfTestAll()">自检所有引擎</button>
+        <button class="ghost" style="flex:1;padding:11px" onclick="aiTestConn()">测试当前引擎</button>
         <button class="primary" style="flex:1;padding:11px;background:var(--red);color:#fff;border:none;border-radius:10px" onclick="saveAICfg()">保存</button>
       </div>
     </div>`);
@@ -3303,6 +3236,36 @@ function saveAICfg(silent){
            key:(document.getElementById('aiKey')||{}).value?document.getElementById('aiKey').value.trim():''};
   S.aiEngines=engs; save();
   if(!silent){ closeSheet(); mtoast('已保存 · 当前引擎 '+aiEngineCfg(k).name); renderQuizSetup(); }
+}
+async function aiSelfTestAll(){
+  const out=document.getElementById('aiTestOut'); if(!out) return;
+  saveAICfg(true);
+  const rows=[];
+  const render=(now)=>{
+    out.innerHTML='<div class="ait-list">'+rows.map(r=>`<div class="ait-row"><b>${esc(r[0])}</b><i class="${r[2]}">${esc(r[1])}</i></div>`).join('')+
+      (now?`<div class="ait-row"><b>${esc(now)}</b><i class="wait">检测中…</i></div>`:'')+'</div>';
+  };
+  render('');
+  for(const e of AI_ENGINES){
+    const c=aiEngineCfg(e.k);
+    if(!aiEngineReady(c)){ rows.push([c.name,'未填密钥/地址','skip']); render(''); continue; }
+    render(c.name);
+    const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),12000);
+    try{
+      const base=c.base.replace(/\/$/,'')+'/chat/completions';
+      const res=await fetch(base,{method:'POST',
+        headers:Object.assign({'Content-Type':'application/json'}, c.key?{Authorization:'Bearer '+c.key}:{}),
+        body:JSON.stringify({model:c.model,max_tokens:16,messages:[{role:'user',content:'回复两个字：可以'}]}),
+        signal:ctrl.signal});
+      rows.push([c.name, res.ok?(c.free?'可用（免费额度小，出整套题可能 402）':'可用'):'失败 '+res.status, res.ok?'ok':'bad']);
+    }catch(err){
+      rows.push([c.name, c.k==='pollinations'?'连不上/被限流':'连不上','bad']);
+    }finally{ clearTimeout(tm); }
+    render('');
+  }
+  const good=rows.filter(r=>r[2]==='ok').length;
+  out.innerHTML='<div class="ait-list">'+rows.map(r=>`<div class="ait-row"><b>${esc(r[0])}</b><i class="${r[2]}">${esc(r[1])}</i></div>`).join('')+'</div>'+
+    `<div class="hint2" style="margin-top:8px">${good?'有 '+good+' 个引擎可用，点上面的卡片切过去再保存即可。':'一个都没通：填个 DeepSeek 或硅基流动的 key 最省事（国内能直连）。'}</div>`;
 }
 async function aiTestConn(){
   const out=document.getElementById('aiTestOut'); if(!out) return;
@@ -3995,8 +3958,12 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.23';
+const VER='2.24';
 const CHANGELOG=[
+ {v:'2.24',d:'2026-11-13',t:'AI 出题只走大模型，删掉本地拼题',items:[
+   '删掉“本地生成”这套：不再拿原书句子拼题干、拼干扰项，AI 出题出的都是模型现出的题',
+   '主引擎连不上会自动换免密钥引擎；全都出不来就把原因写在面板上（带“换引擎/填密钥”“再试一次”按钮），不偷偷用本地题凑数',
+   '题数没出够会明说“只出了 x 题（要 y 题）”，不静默补课']},
  {v:'2.23',d:'2026-11-13',t:'AI 出题题数改成自定义',items:[
    '题数不再只有固定档：快捷 5/10/15/20/30/50，也能直接填 1–60 任意数',
    '单选多选按 3:2 真题手感自动分配并交错排（比如 7 题＝4 单选＋3 多选），面板上直接写着“x 单选＋y 多选”',
@@ -4012,26 +3979,23 @@ const CHANGELOG=[
    '联网返回里如果混进分析题，直接按不合格丢掉，不会再出现在题目里',
    '解析仍是五项：答案 / 考点定位（学科＋章节模块）/ 详细解析 / 错项分析 / 避坑技巧，按块展示']},
  {v:'2.20',d:'2026-11-13',t:'AI 出题按“命题阅卷双师”模板重做：3单选+2多选+1分析题',items:[
-   '出题改成真题配比：每套 单选3（基础/易混/挖坑各一）+ 多选2 + 分析题1，套数可选 1–4 套（6/12/18/24 题）',
+   '出题改成真题配比：每套 单选3（基础/易混/挖坑各一）+ 多选2',
    '题型可切：真题配比 / 只单选 / 只多选 / 只分析题',
    '联网提示词按双师模板重写：先判学科，再按真题难度出题，专考易混辨析、偷换主体/条件/前提、绝对化陷阱，禁背诵题与水题',
    '解析固定五项：答案 / 考点定位（学科+章节模块）/ 详细解析 / 错项分析（逐项写明错在哪、哪种挖坑）/ 避坑技巧，界面上按块分开展示',
    '新增分析题：设问式题干、可写作答、可看参考答案与得分点（原理句＋结合句＋总结句），不混进选择题正确率',
-   '本地生成的分析题走“考点得分点默写”，得分点取该条原书条目答案，不切半句',
    '结果页分开报：选择题答对 x/y · 分析题 n 道已对答案']},
  {v:'2.19',d:'2026-11-13',t:'AI 出题：本地不再碰帽子题，联网换成七引擎可选',items:[
-   '本地生成彻底去掉帽子题来源：帽子题有自己的专题模块，在 AI 出题里再考一遍容易误导；现在只用原书本来就成句的一问一答（题干、选项都是原话）',
    '联网出题扩成七种引擎：Pollinations（免密钥）、Gemini、Groq、DeepSeek、硅基流动、OpenRouter、自定义 OpenAI 兼容；每个引擎单独存 key/地址/模型，选一个走一个',
    '引擎设置面板重做：卡片式选引擎、标出“免密钥/已配密钥/未配密钥”、填完能点「测试连接」当场看通不通',
-   '主引擎连不上（超时、返回不合格、没填 key）会自动退到 Pollinations，再不行才用本地生成，不会再给你一片红字',
+   '主引擎连不上（超时、返回不合格、没填 key）会自动退到 Pollinations，不会再给你一片红字',
    '面板上的引擎格直接显示当前引擎名，旁边一个「换引擎 ⚙」',
    '多选题不再借帽子答案：同一条考点的两条原书说法当正确项，干扰项取别条考点的原书说法']},
  {v:'2.18',d:'2026-11-13',t:'AI 出题独立成板块：能选范围、选量、选题型、记记录',items:[
    'AI 出题从速览卡片的小按钮提成刷题页第三个板块，和普通模式、肖八模式并列',
    '范围：章节筛选、关键字搜考点、最多可勾选 100 条里的任意几条，没勾＝整个章节',
    '题量与题型：5/10/20/30 题，单选、多选、混合三档，出题前就能定',
-   '本地生成（默认，离线可用）：只用原书本来就成句的一问一答＋帽子题成组答案，题干和选项都是原书原话，不会切出半截短语；口诀行、老师标注行不入题',
-   '联网 AI（可选）：内置命题规范——只考本条考点、单选 4 选 1、多选 4 选 2–3、题干≤90字、选项≤30字、禁“以上都对”类废选项、干扰项须同领域易混；解析固定四段【考点】【答案】【为什么】【干扰项】；接口没配/超时/题不合格会自动退回本地生成',
+   '联网 AI：内置命题规范——只考本条考点、单选 4 选 1、多选 4 选 2–3、题干≤90字、选项≤30字、禁“以上都对”类废选项、干扰项须同领域易混；解析固定四段【考点】【答案】【为什么】【干扰项】',
    '做题记录：每轮出完记一条（时间、范围、正确率），最近 5 轮留在面板上',
    '错题记录：AI 题做错逐题落库（最多 60 条），结果页和面板都能一键“AI 错题重练”',
    '速览卡片上的“AI 出题”按钮现在直接跳到 AI 板块、只选这一条考点生成，不再卡联网接口']},
