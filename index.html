@@ -1114,6 +1114,10 @@ const HATS = [
   ["公民权利保障", "最后防线", "司法保障", 97],
   ["马克思主义", "科学的世界观和方法论", "辩证唯物主义和历史唯物主义", 2],
 ];
+
+/* 只有一顶帽子的主体组不出「帽子对照」，不算帽子题 */
+const HAT_SUB=(()=>{const c={};HATS.forEach(h=>c[h[0]]=(c[h[0]]||0)+1);return c;})();
+const HAT_OK=HATS.filter(h=>HAT_SUB[h[0]]>=2);
 let HAT_CAT='all', HAT_MASK=false, HAT_Q='';
 
 /* ---------- 配色 ---------- */
@@ -2761,32 +2765,21 @@ function hatListHTML(list){
   return cards;
 }
 function hatSubjects(){
-  const c={}; HATS.forEach(h=>c[h[0]]=(c[h[0]]||0)+1);
+  const c={}; HAT_OK.forEach(h=>c[h[0]]=(c[h[0]]||0)+1);
   return Object.keys(c).sort((x,y)=> c[y]-c[x] || x.localeCompare(y,'zh')).map(k=>({k,c:c[k]}));
 }
-const HAT_BIG=3;   /* 帽子少于 3 顶的主体不单独占一格，收进「其他」 */
-function hatSplit(){
-  const all=hatSubjects();
-  return {big:all.filter(s=>s.c>=HAT_BIG), small:all.filter(s=>s.c<HAT_BIG)};
-}
 function hatListIn(cat){
-  if(cat==='all') return HATS.slice();
-  if(cat==='other'){ const sp=new Set(hatSplit().small.map(s=>s.k)); return HATS.filter(h=>sp.has(h[0])); }
-  return HATS.filter(h=>h[0]===cat);
+  if(cat==='all') return HAT_OK.slice();
+  return HAT_OK.filter(h=>h[0]===cat);
 }
 function renderHats(){
   const box=document.getElementById('topicBody');
-  const pts=new Set(HATS.map(h=>h[3]));
+  const pts=new Set(HAT_OK.map(h=>h[3]));
   const qn=REALQ.filter(q=>pts.has(q.point)).length;
-  const sp=hatSplit();
-  const chips=['<button class="hat-chip '+(HAT_CAT==='all'?'on':'')+'" onclick="setHatCat(\'all\')">全部 '+HATS.length+'</button>'];
-  sp.big.forEach(o=>{
+  const chips=['<button class="hat-chip '+(HAT_CAT==='all'?'on':'')+'" onclick="setHatCat(\'all\')">全部 '+HAT_OK.length+'</button>'];
+  hatSubjects().forEach(o=>{
     chips.push(`<button class="hat-chip ${HAT_CAT===o.k?'on':''}" onclick="setHatCat('${esc(o.k)}')">${esc(o.k)} ${o.c}</button>`);
   });
-  if(sp.small.length){
-    const n=sp.small.reduce((a,b)=>a+b.c,0);
-    chips.push(`<button class="hat-chip ${HAT_CAT==='other'?'on':''}" onclick="setHatCat('other')">其他 ${sp.small.length} 类 · ${n}</button>`);
-  }
   let list=hatListIn(HAT_CAT);
   const kw=HAT_Q.trim();
   if(kw) list=list.filter(h=> (h[0]+h[1]+h[2]).indexOf(kw)>=0);
@@ -2796,7 +2789,7 @@ function renderHats(){
     <div class="hat-hero">
       <div class="hat-hero-t">
         <h2>帽子题专练</h2>
-        <p>固定的是<b>前边那个主体</b>，变的是<b>帽子</b>——本质、根本、核心、前提、标志……题干一律“某主体的某帽子是什么”，共 <b>${HATS.length}</b> 条，全部摘自原书。</p>
+        <p>固定的是<b>前边那个主体</b>，变的是<b>帽子</b>——本质、根本、核心、前提、标志……题干一律“某主体的某帽子是什么”，共 <b>${HAT_OK.length}</b> 条，全部摘自原书；另有 ${HATS.length-HAT_OK.length} 条在同一主体下只有一顶帽子，组不成对照，不算帽子题，不放在这里。</p>
       </div>
       <div class="hat-tools">
         <button class="hat-toggle ${HAT_MASK?'on':''}" id="hatMaskBtn" onclick="toggleHatMask()">${HAT_MASK?'显示全部答案':'遮住答案自测'}</button>
@@ -2826,7 +2819,7 @@ function setHatCat(c){
 function tapHat(el){ if(!HAT_MASK) return; el.classList.toggle('masked'); }
 function toggleHatMask(){ HAT_MASK=!HAT_MASK; renderHats(); }
 function startHatQuiz(){
-  const pts=new Set(HATS.map(h=>h[3]));
+  const pts=new Set(HAT_OK.map(h=>h[3]));
   const list=REALQ.filter(q=>pts.has(q.point));
   if(!list.length){ mtoast('相关题目暂缺'); return; }
   QZ={mode:'hat',list,idx:0,sel:[],revealed:false,right:0,wrong:0};
@@ -3325,8 +3318,12 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.14';
+const VER='2.15';
 const CHANGELOG=[
+ {v:'2.15',d:'2026-11-13',t:'帽子题只留真能成组的',items:[
+   '88 条里有 39 条是"某主体只有一顶帽子"，一顶帽子组不出对照，本来就不算帽子题；这部分从帽子题专栏移出（速览、背诵里仍能查到）',
+   '剩下 49 条分布在 12 个主体上：马克思主义 13、新发展格局 6、高质量发展 5、法治体系 5、全面依法治国 4、公民权利保障 4，党/邓小平理论/货币/毛泽东思想/五四运动/中国近代史各 2',
+   '分类条现在 13 格、自动换行，不用横划，也不会右边被切']},
  {v:'2.14',d:'2026-11-13',t:'帽子题分类条不再靠横滑',items:[
    '分类条原来是一长条横向滚动，51 个主体挤在一行里，手机上经常划不动、右边还被切掉；现在改成自动换行，一眼全看见，不用滑',
    '帽子少于 3 顶的主体（45 类、共 51 条）不再各占一格，合并成「其他 45 类」，分类条从 52 格缩到 8 格',
