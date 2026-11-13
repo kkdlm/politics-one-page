@@ -39,7 +39,10 @@ html[data-fs="s"]{--fs:.94}
 html[data-fs="l"]{--fs:1.09}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;overscroll-behavior:none}
+html{-webkit-overflow-scrolling:auto}
+*{scrollbar-width:none;-ms-overflow-style:none}
+::-webkit-scrollbar{width:0;height:0;background:transparent}
 body{
   background-color:var(--paper);
   background-image:radial-gradient(rgba(150,128,84,.075) 1px,transparent 1px);
@@ -54,6 +57,7 @@ body{
   transition:background-color .3s,color .3s;
 }
 .wrap{max-width:600px;margin:0 auto;padding:0 16px}
+main{padding-top:var(--hdr,58px)}
 .serif{font-family:var(--serif)}
 button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer;font-size:inherit}
 input,textarea{font-family:inherit}
@@ -61,9 +65,8 @@ svg{display:block}
 
 /* ============ 顶栏 ============ */
 .topbar{
-  position:sticky;top:0;z-index:30;
-  background:var(--topfade);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  position:fixed;top:0;left:0;right:0;z-index:30;
+  background:var(--paper);
   box-shadow:0 1px 0 var(--line-2);
   padding:calc(12px + env(safe-area-inset-top)) 0 10px;
 }
@@ -211,7 +214,8 @@ h1 em{font-style:normal;color:var(--red)}
 .quote-card .src{font-size:10.5px;color:var(--ink-3);margin-top:8px;letter-spacing:.04em}
 
 /* ============ 速览 ============ */
-.toolbar{position:sticky;top:var(--hdr,0px);z-index:20;padding:8px 0 8px;background:var(--topfade)}
+.toolbar{position:sticky;top:var(--hdr,0px);z-index:20;padding:8px 0 8px;background:var(--paper);
+  box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 6%,transparent)}
 .search{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
   border-radius:11px;padding:8px 12px;margin-bottom:9px}
 .search svg{width:15px;height:15px;flex:0 0 15px;opacity:.45}
@@ -382,6 +386,7 @@ html[data-theme="night"] .rate .ok{background:#1A2A26;border-color:#254039}
 
 /* ============ 专题 ============ */
 .tabs{display:flex;gap:6px;margin:0 0 12px;position:sticky;top:var(--hdr,0px);z-index:20;
+  background:var(--paper);
   padding:10px 0 8px;background:var(--topfade)}
 .tabs button{flex:1;padding:9px 0;font-size:12.5px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);color:var(--ink-2);letter-spacing:.06em}
@@ -3069,6 +3074,30 @@ function syncHdr(){
   document.documentElement.style.setProperty('--hdr', (h?h.offsetHeight:0)+'px');
 }
 window.addEventListener('resize', syncHdr, {passive:true});
+/* 端上禁止整页橡皮筋：只在没有内部滚动容器可滚时拦住 */
+(function(){
+  var sy=0;
+  function inScroller(el,dy){
+    while(el&&el!==document.body){
+      var st=getComputedStyle(el);
+      if(/(auto|scroll)/.test(st.overflowY)&&el.scrollHeight>el.clientHeight+1){
+        var canUp=el.scrollTop>0, canDown=el.scrollTop+el.clientHeight<el.scrollHeight-1;
+        if((dy>0&&canUp)||(dy<0&&canDown)) return true;
+      }
+      el=el.parentElement;
+    }
+    return false;
+  }
+  document.addEventListener('touchstart',function(e){ if(e.touches.length===1) sy=e.touches[0].clientY; },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(e.touches.length!==1) return;
+    var dy=e.touches[0].clientY-sy; if(!dy) return;
+    if(inScroller(e.target,dy)) return;
+    var top=window.scrollY<=0;
+    var bot=window.scrollY+window.innerHeight>=document.documentElement.scrollHeight-1;
+    if((top&&dy>0)||(bot&&dy<0)) e.preventDefault();
+  },{passive:false});
+})();
 window.addEventListener('orientationchange', ()=>setTimeout(syncHdr,120));
 applyPrefs(); syncHdr();
 document.getElementById('q').addEventListener('input',e=>{ Q=e.target.value; renderList(); });
@@ -3122,7 +3151,7 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.6';
+const VER='2.7';
 const CHANGELOG=[
  {v:'2.5',d:'2026-11-13',t:'100 条考点对着手册原页逐条核过，断句错补掉',items:[
    '100 个考点逐块逐字比对了《知识点手册》原页：正文与书上一致，没有错字、漏抄或改写的地方（会议口诀按你的要求留原版，不按书改）',
