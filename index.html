@@ -432,7 +432,7 @@ html[data-theme="night"] .rate .ok{background:#1A2A26;border-color:#254039}
 
 /* ============ 每日目标 ============ */
 .goal-card{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
-  border-radius:var(--r);padding:14px 16px;margin-bottom:10px}
+  border-radius:var(--r);padding:14px 16px;margin:14px 0 10px}
 .goal-ring{position:relative;width:62px;height:62px;flex:0 0 62px}
 .goal-ring svg{transform:rotate(-90deg)}
 .goal-ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
@@ -3165,7 +3165,7 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.9';
+const VER='2.9.1';
 const CHANGELOG=[
  {v:'2.5',d:'2026-11-13',t:'100 条考点对着手册原页逐条核过，断句错补掉',items:[
    '100 个考点逐块逐字比对了《知识点手册》原页：正文与书上一致，没有错字、漏抄或改写的地方（会议口诀按你的要求留原版，不按书改）',
