@@ -638,6 +638,13 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .bug-txt.empty-txt{color:var(--ink-3);font-style:italic}
 .bug-acts{display:flex;gap:8px;margin-top:6px}
 .bug-acts button{flex:1;padding:9px 0;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:12px}
+.bug-acts button.primary{background:var(--red);color:#fff;border-color:var(--red)}
+.bug-submit-line{width:100%;margin-top:8px;padding:9px 0;border-radius:10px;border:1px dashed var(--line);
+  background:none;color:var(--ink-2);font-size:11.5px}
+.bug-state{margin-top:8px;display:flex;justify-content:flex-end}
+.sent-btn{border:1px solid var(--line);background:var(--card);border-radius:7px;font-size:11px;padding:4px 10px;color:var(--ink-2)}
+.sent-ok{font-size:10.5px;color:#2E6E63}
+.bug-row.is-sent{opacity:.72}
 .sheet .keyrow{display:flex;gap:8px;margin:9px 0 6px}
 .sheet .keyrow input{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);font-size:13px;outline:none;font-family:inherit}
@@ -1436,14 +1443,16 @@ function openBug(where,loc,n){
     <div class="act">
       <button class="primary" onclick="saveBug()">保存记录</button>
       <button onclick="closeSheet()">取消</button>
-    </div>`);
+    </div>
+    <button class="bug-submit-line" onclick="saveBug(true)">保存并提交到 GitHub 问题页</button>`);
 }
-function saveBug(){
+function saveBug(goSubmit){
   const c=BUGCTX; if(!c) return;
   const el=document.getElementById('bugText');
   S.bugLog=S.bugLog||[];
-  S.bugLog.unshift({at:Date.now(),where:c.where,loc:c.loc,n:c.n,text:el?el.value:''});
-  save(); closeSheet(); mtoast('已记录，共 '+S.bugLog.length+' 条');
+  S.bugLog.unshift({at:Date.now(),where:c.where,loc:c.loc,n:c.n,text:el?el.value:'',sent:false});
+  save(); closeSheet();
+  if(goSubmit){ submitBugs(); } else { mtoast('已记录，共 '+S.bugLog.length+' 条'); }
 }
 function bugFromCard(ev,n){
   ev.stopPropagation();
@@ -1457,21 +1466,46 @@ function bugFromRecite(ev){
 }
 function openBugs(){
   const logs=S.bugLog||[];
+  const pendN=logs.filter(b=>!b.sent).length;
   const rows=logs.length?logs.map((b,i)=>`
-    <div class="bug-row">
+    <div class="bug-row ${b.sent?'is-sent':''}">
       <div class="bug-row-h"><span class="bug-tag">${esc(b.where)}</span>
         <b>${esc(b.loc)}</b><span class="bug-at">${bugTime(b.at)}</span>
         <button class="bug-del" onclick="delBug(${i})">删</button></div>
       ${b.text?`<div class="bug-txt">${esc(b.text)}</div>`:'<div class="bug-txt empty-txt">仅标记位置</div>'}
+      <div class="bug-state">${b.sent?'<span class="sent-ok">已提交</span>':`<button class="sent-btn" onclick="submitOne(${i})">提交这一条</button>`}</div>
     </div>`).join(''):'<div class="empty">还没有记录。在速览或背诵里点小虫子图标就能记。</div>';
   openSheet('问题记录 '+logs.length+' 条',`
     ${rows}
     ${logs.length?`<div class="bug-acts">
+      ${pendN?`<button class="primary" onclick="submitBugs()">提交到 GitHub（${pendN} 条未处理）</button>`:''}
       <button onclick="copyBugs()">复制全部</button>
       <button onclick="clearBugs()">清空</button></div>`:''}`);
 }
 function delBug(i){ S.bugLog.splice(i,1); save(); openBugs(); }
 function clearBugs(){ S.bugLog=[]; save(); openBugs(); }
+function bugBody(list){
+  return list.map((b,i)=>`### ${i+1}. ${b.where} · ${b.loc}\n`+
+    `- 时间：${bugTime(b.at)}\n`+
+    `- 问题：${b.text||'（仅标记位置，需要核对）'}`).join('\n\n');
+}
+function openIssue(title,body){
+  const url='https://github.com/kkdlm/politics-one-page/issues/new?labels=bug&title='+
+    encodeURIComponent(title)+'&body='+encodeURIComponent(body);
+  window.open(url,'_blank');
+}
+function submitOne(i){
+  const b=S.bugLog[i]; if(!b) return;
+  openIssue('[报错] '+b.loc, `在 App 里记录的一处问题：\n\n${bugBody([b])}\n\n---\n版本 v${VER}`);
+  b.sent=true; save(); openBugs();
+}
+function submitBugs(){
+  const pend=(S.bugLog||[]).filter(b=>!b.sent);
+  if(!pend.length){ mtoast('没有待提交的记录'); return; }
+  openIssue(`[内容报错] ${pend.length} 处待核对`,
+    '下面是在 App 里随手记录、需要核对的问题：\n\n'+bugBody(pend)+'\n\n---\n版本 v'+VER);
+  pend.forEach(b=>b.sent=true); save(); openBugs();
+}
 function copyBugs(){
   const s=(S.bugLog||[]).map(b=>`[${bugTime(b.at)}] ${b.where} ${b.loc}${b.text?' — '+b.text:''}`).join('\n');
   navigator.clipboard&&navigator.clipboard.writeText(s).then(()=>mtoast('已复制 '+S.bugLog.length+' 条'));
@@ -2732,7 +2766,8 @@ const CHANGELOG=[
    '每条标新学/复习，完成页分开统计复习、新学、重学和连续打卡天数',
    '加了启动画面：添加到主屏打开时先显示页字印章与标题，再淡出进入，点一下可跳过',
    '背诵条目重做：不再把整句红字挖空只剩虚线；引导句和它的答案配成一张卡，混合句挖空、整句红字整句回忆，每张卡都完整通顺',
-   '速览和背诵都加了小虫子按钮，点一下就能随手记录问题（错别字/排版/内容），自动带位置，设置里可查看、复制、清空']},
+   '速览和背诵都加了小虫子按钮，点一下就能随手记录问题（错别字/排版/内容），自动带位置，设置里可查看、复制、清空',
+   '问题可一键提交到 GitHub 问题页（内容自动填好，点一下确认即可），已提交的会标记，避免重复；也可复制后直接发对话']},
  {v:'2.1',d:'2026-11-13',t:'速览排版与考点关联重做',items:[
    '速览色块重排：一句话不再被切成两半，逗号连着的句子、括号里没说完的内容都并回同一段，只有真正的小标题才单独成色块',
    '肖八考点关联全部重算：按考点正文里的原话对应，不再凭字面瞎跳；192 题有准确对应，其余如实标注「速览未收录」，不硬链',
