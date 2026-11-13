@@ -75,6 +75,26 @@ svg{display:block}
   box-shadow:0 4px 10px -4px rgba(165,52,46,.7);
   transform:rotate(-3deg);
 }
+/* ---------- 启动屏 ---------- */
+.splash{position:fixed;inset:0;z-index:9999;background:var(--paper);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .45s ease,visibility .45s ease}
+.splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.splash-inner{display:flex;flex-direction:column;align-items:center}
+.splash-seal{width:88px;height:88px;border-radius:18px;background:var(--red);color:#F6E9CE;
+  display:grid;place-items:center;font-size:44px;letter-spacing:2px;
+  box-shadow:0 18px 40px -16px rgba(165,52,46,.75);
+  animation:splashIn .6s cubic-bezier(.2,.7,.3,1) both}
+.splash-title{margin:26px 0 9px;font-size:26px;letter-spacing:.14em;color:var(--ink);font-weight:600;
+  animation:splashFade .6s .15s ease both}
+.splash-sub{margin:0;font-size:13px;letter-spacing:.08em;color:var(--ink-3);
+  animation:splashFade .6s .28s ease both}
+.splash-foot{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);
+  font-size:11px;letter-spacing:.18em;color:var(--ink-3);
+  animation:splashFade .6s .42s ease both}
+@keyframes splashIn{from{opacity:0;transform:rotate(-4deg) scale(.72)}to{opacity:1;transform:rotate(-4deg) scale(1)}}
+@keyframes splashFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.splash-seal,.splash-title,.splash-sub,.splash-foot{animation:none}}
 .tt{display:flex;flex-direction:column;line-height:1.2;flex:1;min-width:0}
 .tt b{font-family:var(--serif);font-size:16.5px;letter-spacing:.04em;font-weight:600;white-space:nowrap}
 .tt span{font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;margin-top:3px;
@@ -680,6 +700,15 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 </style>
 </head>
 <body>
+
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <div class="splash-seal serif">页</div>
+    <h1 class="splash-title serif">政治一页纸</h1>
+    <p class="splash-sub">2027 考研政治 · 知识点背诵</p>
+  </div>
+  <div class="splash-foot">个人学习资料</div>
+</div>
 
 <header class="topbar">
   <div class="wrap">
@@ -2590,6 +2619,17 @@ window.addEventListener('scroll',()=>{
   at.rel='apple-touch-icon'; at.href=manifest.icons[0].src;
   document.head.appendChild(at);
 })();
+(function setupSplash(){
+  const el=document.getElementById('splash');
+  if(!el) return;
+  if(sessionStorage.getItem('splashShown')){ el.remove(); return; }
+  sessionStorage.setItem('splashShown','1');
+  let gone=false;
+  const hide=()=>{ if(gone) return; gone=true;
+    el.classList.add('hide'); setTimeout(()=>el.remove(),480); };
+  el.addEventListener('click', hide);
+  setTimeout(hide,1300);
+})();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
@@ -2600,7 +2640,8 @@ const CHANGELOG=[
    '每条独立记忆，按艾宾浩斯排期：10分钟→1小时→1天→2天→4天→7天→15天→30天→60天，会了升档、没记住回到10分钟并在今天稍后重背',
    '每日目标支持自定义（1–460 条），不再只给四档',
    '进度持久化：切到别的模块再回来，从刚背的那条继续，不重新开始',
-   '每条标新学/复习，完成页分开统计复习、新学、重学和连续打卡天数']},
+   '每条标新学/复习，完成页分开统计复习、新学、重学和连续打卡天数',
+   '加了启动画面：添加到主屏打开时先显示页字印章与标题，再淡出进入，点一下可跳过']},
  {v:'2.1',d:'2026-11-13',t:'速览排版与考点关联重做',items:[
    '速览色块重排：一句话不再被切成两半，逗号连着的句子、括号里没说完的内容都并回同一段，只有真正的小标题才单独成色块',
    '肖八考点关联全部重算：按考点正文里的原话对应，不再凭字面瞎跳；192 题有准确对应，其余如实标注「速览未收录」，不硬链',
