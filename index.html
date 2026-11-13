@@ -525,6 +525,8 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .ai-spec b{display:block;font-family:var(--serif);font-size:12.5px;color:#2e6e63;margin-bottom:5px}
 .ai-spec ul{margin:0;padding-left:16px}
 .ai-spec li{margin:3px 0}
+.ai-num{width:70px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--card);font-family:var(--mono);font-size:13px;color:var(--ink);text-align:center}
+.ai-numtip{font-size:11px;color:var(--ink-3)}
 .ai-sec-t{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 9px}
 .ai-sec-t b{font-family:var(--serif);font-size:13.5px;color:var(--ink)}
 .ai-sec-t span{font-size:10.5px;color:var(--ink-3)}
@@ -2833,13 +2835,20 @@ function renderQuizResult(){
 }
 
 /* ---------- AI 出题板块（与普通题/肖八并列） ---------- */
-const AIS={ch:'all',pts:[],set:2,type:'mix5',engine:'local',q:'',open:false};
-const AI_SETS=[1,2,3,4];
+const AIS={ch:'all',pts:[],n:10,type:'mix5',engine:'local',q:'',open:false};
+const AI_QUICK=[5,10,15,20,30,50];
 function aiCount(mode,type){
   const m=mode||AIS.type;
-  if(m==='single') return 3*AI_SETS[AIS.set-1];
-  if(m==='multi') return 2*AI_SETS[AIS.set-1];
-  return 5*AI_SETS[AIS.set-1];
+  const n=Math.max(1,Math.min(60,Math.round(AIS.n||10)));
+  return n;
+}
+function aiSplit(n,type){
+  n=Math.max(1,Math.min(60,n||1));
+  const m=type||AIS.type;
+  if(m==='single') return {single:n,multi:0};
+  if(m==='multi') return {single:0,multi:n};
+  const single=Math.max(1,Math.min(n,Math.round(n*3/5)));
+  return {single:single,multi:n-single};
 }
 function aiN(){ return aiCount(AIS.type,AIS.type); }
 function aiScopePoints(){
@@ -2849,6 +2858,10 @@ function aiScopePoints(){
     if(kw && (p.title+p.ch+p.sub).indexOf(kw)<0) return false;
     return true;
   });
+}
+function aiSetN(v){
+  let n=parseInt(v,10); if(!isFinite(n)||n<1) n=1; if(n>60) n=60;
+  AIS.n=n; renderQuizSetup();
 }
 function aiPtCount(){ return AIS.pts.length?AIS.pts.length:PTS.length; }
 function aiPanelHTML(){
@@ -2872,9 +2885,13 @@ function aiPanelHTML(){
     ${AIS.open?`<div class="aip-list">${ptList}</div>`:''}
   </div>
   <div class="filter-card">
-    <div class="ai-sec-t"><b>2 · 套数与题型</b><span>${aiN()} 题 · ${AIS.type==='mix5'?'每套 3 单选＋2 多选':AIS.type==='single'?'全单选':'全多选'}</span></div>
-    <div class="filter-line"><span class="fl-label">套数</span><div class="chips">
-      ${AI_SETS.map(k=>`<button class="chip ${AIS.set===k?'on':''}" onclick="AIS.set=${k};renderQuizSetup()">${k} 套 · ${(AIS.type==='single'?3:AIS.type==='multi'?2:5)*k} 题</button>`).join('')}
+    <div class="ai-sec-t"><b>2 · 题数与题型</b><span>${(()=>{const sp=aiSplit(aiN());return sp.multi?sp.single+' 单选＋'+sp.multi+' 多选':sp.single+' 道单选';})()}</span></div>
+    <div class="filter-line"><span class="fl-label">题数</span><div class="chips">
+      ${AI_QUICK.map(k=>`<button class="chip ${aiN()===k?'on':''}" onclick="AIS.n=${k};renderQuizSetup()">${k}</button>`).join('')}
+    </div></div>
+    <div class="filter-line"><span class="fl-label">自定</span><div class="chips">
+      <input class="ai-num" type="number" inputmode="numeric" min="1" max="60" value="${aiN()}" onchange="aiSetN(this.value)">
+      <span class="ai-numtip">题，1–60 随便填</span>
     </div></div>
     <div class="filter-line"><span class="fl-label">题型</span><div class="chips">
       <button class="chip ${AIS.type==='mix5'?'on':''}" onclick="AIS.type='mix5';renderQuizSetup()">真题配比</button>
@@ -2999,12 +3016,17 @@ function aiBuildLocal(){
   const answers=pool.map(c=>c.a);
   const want=aiN(), qs=[], used=new Set();
   const plan=[];   /* 先按真题配比排好每套的题型 */
-  if(AIS.type==='mix5'){
-    for(let k=0;k<AIS.set;k++) plan.push('single','single','single','multi','multi');
-  }else if(AIS.type==='single'){
-    for(let k=0;k<AIS.set*3;k++) plan.push('single');
-  }else{
-    for(let k=0;k<AIS.set*2;k++) plan.push('multi');
+  const split=aiSplit(aiN());
+  for(let k=0;k<split.single;k++) plan.push('single');
+  for(let k=0;k<split.multi;k++) plan.push('multi');
+  /* 多选和单选交错，别一上来连着好几道多选 */
+  if(split.multi && split.single){
+    const sp=[...plan]; plan.length=0;
+    for(let k=0;k<Math.max(split.single,split.multi);k++){
+      if(sp.shift()) plan.push('single');
+      if(sp.pop()) plan.push('multi');
+    }
+    while(plan.length<aiN()) plan.push('single');
   }
   let guard=0;
   while(qs.length<want && guard<want*30){
@@ -3072,9 +3094,11 @@ async function aiStartNet(){
   const pts=(AIS.pts.length?AIS.pts:PTS.map(p=>p.n));
   const cfg=getAICfg();
   if(!aiEngineReady(cfg)){ mtoast('先到「引擎设置」里把 '+cfg.name+' 的 key 填上'); openAISettings(); return; }
-  const pick=shuffle(pts).slice(0,Math.min(pts.length,Math.max(1,AIS.set)));
-  aiSetStatus('<div class="ai-status"><span class="spin"></span>正在用「'+esc(cfg.name)+'」按真题配比出题（'+AIS.set+' 套，最多等 25 秒）……连不上会换引擎，再不行用本地生成</div>');
-  const rs=await Promise.all(pick.map(n=>aiNetOnce([n],1,AIS.type)));
+  const need=aiN();
+  const pick=shuffle(pts).slice(0,Math.min(pts.length,Math.max(1,Math.min(8,Math.ceil(need/2)))));
+  const perPoint=Math.max(1,Math.ceil(need/pick.length));
+  aiSetStatus('<div class="ai-status"><span class="spin"></span>正在用「'+esc(cfg.name)+'」出 '+need+' 题（'+pick.length+' 个考点，最多等 25 秒）……连不上会换引擎，再不行用本地生成</div>');
+  const rs=await Promise.all(pick.map(n=>aiNetOnce([n],perPoint,AIS.type)));
   let qs=[], engine='';
   rs.forEach(r=>{
     if(!r.qs.length) return;
@@ -3087,7 +3111,7 @@ async function aiStartNet(){
     if(!engine) engine='本地生成';
   }
   aiSetStatus('');
-  if(!qs.length){ mtoast('没出出来，换引擎或减少套数再试'); return; }
+  if(!qs.length){ mtoast('没出出来，换个引擎或把题数调小再试'); return; }
   AIS.lastEngine=engine;
   aiEnter(qs.slice(0,aiN()));
 }
@@ -3123,16 +3147,17 @@ function aiRandomPoint(){
   aiForPoint(p.n);
 }
 function buildAIPrompt(p,per,kind){
-  const sets=Math.max(1,per||1);
-  const what=kind==='single'?sets*3+' 道单选题（只要 single）'
-    :kind==='multi'?sets*2+' 道多选题（只要 multi）'
-    :sets+' 套练习（每套固定：单选题 3 道＝基础 1＋易混辨析 1＋陷阱挖坑 1；多选题 2 道）';
+  const n=Math.max(1,Math.min(60,per||1));
+  const sp=aiSplit(n,kind);
+  const what=kind==='single'?n+' 道单选题（只要 single）'
+    :kind==='multi'?n+' 道多选题（只要 multi）'
+    :n+' 道题（其中单选 '+sp.single+' 道＝基础/易混辨析/陷阱挖坑轮着来，多选 '+sp.multi+' 道）';
   return [
 '你现在是考研政治命题、阅卷双师老师，完全按照历年考研政治真题的命题风格、难度、挖坑方式、设问方式出题。',
-'【本次任务】围绕下面这一个政治知识点出：'+what+'。',
+'【本次任务】围绕下面这一个政治知识点出：'+what+'。题目数量必须正好是 '+n+' 道，不多不少。',
 '【学科自动匹配】先判断这个知识点属于哪一学科（马原／毛中特／史纲／思修法基／当代），解析里的考点定位必须写清“学科＋章节模块”。',
 '【出题硬性规则】',
-'1. 题型配比贴真题：每套 单选 3 道（基础 1＋易混辨析 1＋陷阱挖坑 1）、多选 2 道；不要出分析题。',
+'1. 题型配比贴真题：单选与多选按 3:2 的真题手感来（基础 1＋易混辨析 1＋陷阱挖坑 1 轮换）；不要出分析题。',
 '2. 难度对标真题，不出简单背诵题；多考易混概念辨析、相似会议/著作/时间/主体区分、偷换主体、偷换条件、偷换前提、绝对化表述陷阱、教材边角与高频易错点。',
 '3. 绝不出水题、绝不出中小学水平的题、绝不超考研大纲；不得考“第几条”“口诀叫什么”“属于哪一章”这类记忆标签。',
 '4. 多选必须设强干扰项，走“看似对、实则错”的真题多选套路；4 个选项、正确 2–3 个，不许“以上都对/以上都不对”这类废选项。',
@@ -3970,8 +3995,12 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.22';
+const VER='2.23';
 const CHANGELOG=[
+ {v:'2.23',d:'2026-11-13',t:'AI 出题题数改成自定义',items:[
+   '题数不再只有固定档：快捷 5/10/15/20/30/50，也能直接填 1–60 任意数',
+   '单选多选按 3:2 真题手感自动分配并交错排（比如 7 题＝4 单选＋3 多选），面板上直接写着“x 单选＋y 多选”',
+   '只单选 / 只多选也可以配任意题数']},
  {v:'2.22',d:'2026-11-13',t:'答题页加退出键；错题本可以直接翻，不用重做',items:[
    '答题页顶部右侧新增「退出」：做到一半退出会先问一句，不会误触丢进度；做完题结果页也有返回',
    '普通题库和 AI 出题各有一个「看错题本」入口：点开就是题干＋四个选项＋正确答案＋你当时选的＋五项解析',
