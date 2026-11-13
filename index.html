@@ -773,8 +773,7 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .hat-toggle{flex:1;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:10px;
   padding:9px;font-size:13px;font-family:var(--sans);font-weight:600}
 .hat-toggle.on{background:var(--red);color:#fff}
-.hat-chips{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none}
-.hat-chips::-webkit-scrollbar{display:none}
+.hat-chips{display:flex;flex-wrap:wrap;gap:7px;padding:2px 2px 10px}
 .hat-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink-2);
   border-radius:999px;padding:6px 13px;font-size:12.5px;font-family:var(--sans)}
 .hat-chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
@@ -2763,17 +2762,32 @@ function hatListHTML(list){
 }
 function hatSubjects(){
   const c={}; HATS.forEach(h=>c[h[0]]=(c[h[0]]||0)+1);
-  return Object.keys(c).sort((x,y)=> c[y]-c[x] || x.localeCompare(y,'zh'));
+  return Object.keys(c).sort((x,y)=> c[y]-c[x] || x.localeCompare(y,'zh')).map(k=>({k,c:c[k]}));
+}
+const HAT_BIG=3;   /* 帽子少于 3 顶的主体不单独占一格，收进「其他」 */
+function hatSplit(){
+  const all=hatSubjects();
+  return {big:all.filter(s=>s.c>=HAT_BIG), small:all.filter(s=>s.c<HAT_BIG)};
+}
+function hatListIn(cat){
+  if(cat==='all') return HATS.slice();
+  if(cat==='other'){ const sp=new Set(hatSplit().small.map(s=>s.k)); return HATS.filter(h=>sp.has(h[0])); }
+  return HATS.filter(h=>h[0]===cat);
 }
 function renderHats(){
   const box=document.getElementById('topicBody');
   const pts=new Set(HATS.map(h=>h[3]));
   const qn=REALQ.filter(q=>pts.has(q.point)).length;
+  const sp=hatSplit();
   const chips=['<button class="hat-chip '+(HAT_CAT==='all'?'on':'')+'" onclick="setHatCat(\'all\')">全部 '+HATS.length+'</button>'];
-  hatSubjects().forEach(k=>{ const n=HATS.filter(h=>h[0]===k).length;
-    chips.push(`<button class="hat-chip ${HAT_CAT===k?'on':''}" onclick="setHatCat('${esc(k)}')">${esc(k)} ${n}</button>`);
+  sp.big.forEach(o=>{
+    chips.push(`<button class="hat-chip ${HAT_CAT===o.k?'on':''}" onclick="setHatCat('${esc(o.k)}')">${esc(o.k)} ${o.c}</button>`);
   });
-  let list=HAT_CAT==='all'?HATS:HATS.filter(h=>h[0]===HAT_CAT);
+  if(sp.small.length){
+    const n=sp.small.reduce((a,b)=>a+b.c,0);
+    chips.push(`<button class="hat-chip ${HAT_CAT==='other'?'on':''}" onclick="setHatCat('other')">其他 ${sp.small.length} 类 · ${n}</button>`);
+  }
+  let list=hatListIn(HAT_CAT);
   const kw=HAT_Q.trim();
   if(kw) list=list.filter(h=> (h[0]+h[1]+h[2]).indexOf(kw)>=0);
 
@@ -2798,13 +2812,17 @@ function renderHats(){
 }
 function onHatQ(v){
   HAT_Q=v;
-  let list=HAT_CAT==='all'?HATS:HATS.filter(h=>h[0]===HAT_CAT);
+  let list=hatListIn(HAT_CAT);
   const kw=String(v||'').trim();
   if(kw) list=list.filter(h=> (h[0]+h[1]+h[2]).indexOf(kw)>=0);
   const box=document.getElementById('hatList');
   if(box) box.innerHTML=hatListHTML(list);
 }
-function setHatCat(c){ HAT_CAT=c; renderHats(); }
+function setHatCat(c){
+  HAT_CAT=c; renderHats();
+  const on=document.querySelector('.hat-chip.on');
+  if(on) on.scrollIntoView({block:'nearest',inline:'nearest'});
+}
 function tapHat(el){ if(!HAT_MASK) return; el.classList.toggle('masked'); }
 function toggleHatMask(){ HAT_MASK=!HAT_MASK; renderHats(); }
 function startHatQuiz(){
@@ -3307,8 +3325,18 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.13';
+const VER='2.14';
 const CHANGELOG=[
+ {v:'2.14',d:'2026-11-13',t:'帽子题分类条不再靠横滑',items:[
+   '分类条原来是一长条横向滚动，51 个主体挤在一行里，手机上经常划不动、右边还被切掉；现在改成自动换行，一眼全看见，不用滑',
+   '帽子少于 3 顶的主体（45 类、共 51 条）不再各占一格，合并成「其他 45 类」，分类条从 52 格缩到 8 格',
+   '点「其他」照样按主体分组列出全部条目，一个都不少',
+   '选中任何一格会自动滚进可视区，不会出现点了却没反应的情况']},
+ {v:'2.14',d:'2026-11-13',t:'帽子题主体筛选重做',items:[
+   '原来 88 条帽子题铺了 51 个主体，横着排了六千多像素，滑半天还在原地——45 个主体只有一顶帽子，占着筛选栏却没什么可筛的',
+   '现在筛选栏只留帽子≥3 顶的 6 个主体（马克思主义 13、新发展格局 6、高质量发展 5、法治体系 5、公民权利保障 4、全面依法治国 4），其余 45 类收成一个「其他」',
+   '分类条改成换行铺开，不再横向滑动，四行内全部点得到，也就没有“滑不动”这回事了',
+   '点「其他」后仍按主体分组列出长尾小类，不会混成一坨']},
  {v:'2.13',d:'2026-11-13',t:'大观重点加红 + 口诀块放大',items:[
    '会议大观上/中/下原来整块没有重点色（上一版把行内颜色丢了），现在按原书排版逐字对回红色重点：092 约 37%、093 约 41%、094 约 41% 的字是书上的重点色，其余保持正文色',
    '091 会议口诀不再是小灰字：放大到 15.5px、颜色加深、逐句编号，一眼能看出这二十七句是把全部会议串起来的纲',
