@@ -530,6 +530,11 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .ai-spec b{display:block;font-family:var(--serif);font-size:12.5px;color:#2e6e63;margin-bottom:5px}
 .ai-spec ul{margin:0;padding-left:16px}
 .ai-spec li{margin:3px 0}
+.ai-live{margin-top:11px;border-top:1px dashed var(--line);padding-top:10px}
+.ai-live-t{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;color:var(--ink-3);margin-bottom:7px}
+.ai-live-t i{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.ai-idle{font-size:12px;color:var(--ink-3);line-height:1.6;padding:2px 0}
+.ai-status.ok{border-color:#3f7d52;color:#3f7d52}
 .ait-list{margin-top:10px}
 .ait-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;border-bottom:1px dashed var(--line);font-size:12px}
 .ait-row b{color:var(--ink)}
@@ -2921,7 +2926,10 @@ function aiPanelHTML(){
       <button class="chip ${AIS.type==='single'?'on':''}" onclick="AIS.type='single';renderQuizSetup()">只单选</button>
       <button class="chip ${AIS.type==='multi'?'on':''}" onclick="AIS.type='multi';renderQuizSetup()">只多选</button>
     </div></div>
-    <div class="tip" style="margin:0">题目全部由大模型按考研真题风格现出，当前引擎「${esc(getAICfg().name)}」。主引擎连不上去会自动换免密钥引擎；都没出成会写明原因，并给出「换引擎 / 填密钥」入口——不会拿原书句子拼题糊弄。免费接口额度小，想稳定出题建议在设置里填 DeepSeek 或硅基流动的 key。</div>
+    <div class="ai-live">
+      <div class="ai-live-t"><span>出题状态</span><i>${esc(getAICfg().name)}</i></div>
+      <div id="aiStatus">${AIS.msg||'<div class="ai-idle">空闲 · 点下面「开始出题」</div>'}</div>
+    </div>
 
   </div>
   <div class="quiz-setup">
@@ -2935,7 +2943,7 @@ function aiPanelHTML(){
     <div class="ai-sec-t"><b>3 · 做题记录</b><span>只存本机</span></div>
     ${logRows||'<div class="hat-empty">还没出过题，点上面「开始出题」</div>'}
   </div>
-  <div id="aiStatus"></div>`;
+  `;
 }
 function aiTogglePt(n){
   const i=AIS.pts.indexOf(n);
@@ -3048,6 +3056,7 @@ async function aiStartNet(){
   }
   AIS.lastEngine=engine;
   if(qs.length<need) mtoast('只出了 '+qs.length+' 题（要 '+need+' 题），可换引擎再试');
+  aiSetStatus('<div class="ai-status ok">已出 '+qs.length+' 题 · 引擎「'+esc(engine)+'」· '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+'</div>');
   aiEnter(qs.slice(0,need));
 }
 /* ---------- AI 出题：多引擎（免密钥 / 自带密钥 / 自定义） ---------- */
@@ -3071,7 +3080,11 @@ function aiEngineReady(cfg){ return !!(cfg.base&&cfg.model) && (!!cfg.key||cfg.k
 function pointPlain(p){
   return p.lines.map(l=>l.map(s=>s[0]).join('')).join('\n');
 }
-function aiSetStatus(html){ const el=document.getElementById('aiStatus'); if(el) el.innerHTML=html; }
+function aiSetStatus(html){
+  AIS.msg=html||'';
+  const el=document.getElementById('aiStatus');
+  if(el) el.innerHTML=html||'<div class="ai-idle">空闲 · 点下面「开始出题」</div>';
+}
 function aiForCurrent(){
   let n=S.last;
   if(!n||!PTS.find(p=>p.n===n)){ return aiRandomPoint(); }
@@ -3974,8 +3987,13 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.26';
+const VER='2.27';
 const CHANGELOG=[
+ {v:'2.27',d:'2026-11-13',t:'AI 出题那段说明换成实时状态',items:[
+   '删掉面板里那段“题目由大模型按真题风格现出…”的说明文字，原位改成「出题状态」',
+   '出题时实时显示进度：正在用哪个引擎、出到第几题、共多少题；出完显示“已出 X 题 · 引擎 · 时间”',
+   '失败直接把原因和「换引擎 / 填密钥」「再试一次」按钮放在这块，不用再往下翻',
+   '空着时显示“空闲 · 点下面「开始出题」”，状态会记住，换题数、换范围重绘面板也不会丢']},
  {v:'2.26',d:'2026-11-13',t:'错项分析改成逐项说清：错在哪 / 正确是什么 / 只是答非所问',items:[
    '错项分析不再用分号把几个选项挤成一段：A、B、C、D 各占一行，行首带字母，一眼能对上选项',
    '每项都写清三件事之一：这句错在哪、正确表述是什么；或者“说法本身没错，但它答的不是题干限定的××”；对得上原书其它条目的，直接写到“出自第 XXX 条「标题」，属张冠李戴”',
