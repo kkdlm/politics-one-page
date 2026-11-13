@@ -773,7 +773,12 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .hat-toggle{flex:1;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:10px;
   padding:9px;font-size:13px;font-family:var(--sans);font-weight:600}
 .hat-toggle.on{background:var(--red);color:#fff}
-.hat-chips{display:flex;flex-wrap:wrap;gap:7px;padding:2px 2px 10px}
+.hat-chips{display:flex;flex-wrap:nowrap;gap:7px;padding:2px 2px 10px;overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;scrollbar-width:none;
+  mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 22px),transparent 100%);
+  -webkit-mask-image:linear-gradient(to right,#000 0,#000 calc(100% - 22px),transparent 100%)}
+.hat-chips::-webkit-scrollbar{display:none}
+.hat-chip{scroll-margin:0 40px}
 .hat-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink-2);
   border-radius:999px;padding:6px 13px;font-size:12.5px;font-family:var(--sans)}
 .hat-chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
@@ -2811,10 +2816,29 @@ function onHatQ(v){
   const box=document.getElementById('hatList');
   if(box) box.innerHTML=hatListHTML(list);
 }
+let HAT_DRAG_UNTIL=0, HAT_X0=0, HAT_Y0=0;
+document.addEventListener('touchstart',e=>{
+  const t=e.target.closest && e.target.closest('.hat-chips');
+  if(t && e.touches.length===1){ HAT_X0=e.touches[0].clientX; HAT_Y0=e.touches[0].clientY; }
+},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(e.touches.length!==1) return;
+  const dx=e.touches[0].clientX-HAT_X0, dy=e.touches[0].clientY-HAT_Y0;
+  if(Math.abs(dx)>9 && Math.abs(dx)>Math.abs(dy)) HAT_DRAG_UNTIL=Date.now()+450;
+},{passive:true});
+document.addEventListener('click',e=>{
+  if(Date.now()<HAT_DRAG_UNTIL && e.target.closest && e.target.closest('.hat-chips')){
+    e.preventDefault(); e.stopPropagation();
+  }
+},true);
 function setHatCat(c){
   HAT_CAT=c; renderHats();
   const on=document.querySelector('.hat-chip.on');
-  if(on) on.scrollIntoView({block:'nearest',inline:'nearest'});
+  const bar=document.getElementById('hatChips');
+  if(on&&bar){
+    const left=on.offsetLeft-bar.clientWidth/2+on.offsetWidth/2;
+    bar.scrollTo({left,behavior:'smooth'});
+  }
 }
 function tapHat(el){ if(!HAT_MASK) return; el.classList.toggle('masked'); }
 function toggleHatMask(){ HAT_MASK=!HAT_MASK; renderHats(); }
@@ -3318,8 +3342,14 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.15';
+const VER='2.16';
 const CHANGELOG=[
+ {v:'2.16',d:'2026-11-13',t:'分类条回到单行横滑，但把手势修好了',items:[
+   '分类条恢复成一行左右滑，不再占三行高度；右边加渐隐，能看出后面还有',
+   '上一次滑不动的真正原因：手指在 chip 上起手拖动，松手时被当成一次点击，于是"滑一下就选中了"，看着像卡住；现在拖动超过 9px 就忽略这次点击，滑和点分得开',
+   '手机上加 -webkit-overflow-scrolling:touch，iOS 惯性滚动正常',
+   '选中哪一格会自动滑到中间，不会点了还只露半截',
+   '格子也从 52 个减到 13 个（只有 1 顶帽子的主体已移出帽子题专栏）']},
  {v:'2.15',d:'2026-11-13',t:'帽子题只留真能成组的',items:[
    '88 条里有 39 条是"某主体只有一顶帽子"，一顶帽子组不出对照，本来就不算帽子题；这部分从帽子题专栏移出（速览、背诵里仍能查到）',
    '剩下 49 条分布在 12 个主体上：马克思主义 13、新发展格局 6、高质量发展 5、法治体系 5、全面依法治国 4、公民权利保障 4，党/邓小平理论/货币/毛泽东思想/五四运动/中国近代史各 2',
