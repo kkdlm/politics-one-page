@@ -89,12 +89,9 @@ svg{display:block}
   animation:splashFade .6s .15s ease both}
 .splash-sub{margin:0;font-size:13px;letter-spacing:.08em;color:var(--ink-3);
   animation:splashFade .6s .28s ease both}
-.splash-foot{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 34px);
-  font-size:11px;letter-spacing:.18em;color:var(--ink-3);
-  animation:splashFade .6s .42s ease both}
 @keyframes splashIn{from{opacity:0;transform:rotate(-4deg) scale(.72)}to{opacity:1;transform:rotate(-4deg) scale(1)}}
 @keyframes splashFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.splash-seal,.splash-title,.splash-sub,.splash-foot{animation:none}}
+@media (prefers-reduced-motion:reduce){.splash-seal,.splash-title,.splash-sub{animation:none}}
 .tt{display:flex;flex-direction:column;line-height:1.2;flex:1;min-width:0}
 .tt b{font-family:var(--serif);font-size:16.5px;letter-spacing:.04em;font-weight:600;white-space:nowrap}
 .tt span{font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;margin-top:3px;
@@ -316,6 +313,9 @@ h1 em{font-style:normal;color:var(--red)}
 .r-cover .big{font-family:var(--serif);font-size:52px;color:var(--line);line-height:1;user-select:none}
 .r-ask{margin-top:16px;font-family:var(--serif);font-size:calc(17px * var(--fs));line-height:1.95;color:var(--ink);letter-spacing:.01em}
 .r-ask .bk{display:inline-block;min-width:52px;border-bottom:1.5px dashed var(--red);margin:0 3px;transform:translateY(-1px)}
+.r-ask.whole{display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.whole-lead{color:var(--ink);line-height:1.8}
+.whole-bk{display:inline-block;min-width:130px;border-bottom:2px dashed var(--red);align-self:center;margin-top:8px}
 .r-ans{margin-top:16px;font-family:var(--serif);font-size:calc(16px * var(--fs));line-height:1.9;color:var(--ink-2)}
 .r-ans .rk{color:var(--red);font-weight:600}
 .r-cover.sm{min-height:auto;padding:26px 0 6px;gap:10px}
@@ -707,7 +707,6 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
     <h1 class="splash-title serif">政治一页纸</h1>
     <p class="splash-sub">2027 考研政治 · 知识点背诵</p>
   </div>
-  <div class="splash-foot">个人学习资料</div>
 </div>
 
 <header class="topbar">
@@ -1433,31 +1432,41 @@ function todayProgress(){
 
 /* ---------- 抽背（一行一条，只问这一条） ---------- */
 let RQ=[], RIDX=0, RSHOW=false, RSCOPE='全部', RSTAT=null, REND=false;
+/* ---------- 背诵条目：混合句挖空、全红句整句回忆、冒号引导配对 ---------- */
+function gcore(line){
+  return line.filter(s=>s[1]!=='k').map(s=>s[0]).join('')
+    .replace(/[\s（）()，,、：:；;。.·“”‘’/\u2014-]/g,'');
+}
+function isColonLine(line){
+  return /[：:？?]$/.test(line.map(s=>s[0]).join('').trim());
+}
+function isPureG(line){
+  return !line.some(s=>s[1]==='k');
+}
 function entOf(p){
-  const out=[]; let pend='';
+  const out=[]; let lead=null;
   (p.lines||[]).forEach((line,li)=>{
     if(!line||!line.length) return;
-    const full=line.map(x=>x[0]).join('');
-    const hasG=line.some(([t,k])=>k!=='k'&&t.trim());
-    const hasK=line.some(([t,k])=>k==='k');
-    if(!hasK){ pend = pend? pend+' '+full : full; return; }
-    if(!hasG){
-      if(pend){
-        out.push({n:p.n, li, q:pend+'＿', ans:[[pend+'：',false],[full,true]], p});
-        pend=''; return;
-      }
-      if(/[：:]$/.test(full.trim())){ pend=full.replace(/[：:]\s*$/,''); return; }
+    if(isColonLine(line)){ lead=line.map(s=>s[0]).join('').trim(); return; }
+    if(isPureG(line)){
+      if(out.length) line.forEach(s=>out[out.length-1].ans.push([s[0],false]));
       return;
     }
-    let q='', inK=false; const segs=[];
-    line.forEach(([t,k])=>{
-      const isK=k==='k';
-      segs.push([t,isK]);
-      if(isK){ if(!inK){ q+='＿'; inK=true; } }
-      else { q+=t; inK=false; }
-    });
-    if(pend){ q=pend+' '+q; pend=''; }
-    out.push({n:p.n, li, q, ans:segs, p});
+    if(gcore(line).length>=2){
+      let q=''; let inK=false; const segs=[];
+      if(lead){ segs.push([lead+' ',false]); q+=lead+' '; }
+      line.forEach(([t,k])=>{
+        const isK=k==='k';
+        segs.push([t,isK]);
+        if(isK){ if(!inK){ q+='＿'; inK=true; } }
+        else { q+=t; inK=false; }
+      });
+      out.push({n:p.n,li,mode:'cloze',kth:out.length+1,q,ans:segs,p});
+    } else {
+      const segs=line.map(([t,k])=>[t,k==='k']);
+      out.push({n:p.n,li,mode:'whole',kth:out.length+1,lead,q:lead||'',ans:segs,p});
+    }
+    lead=null;
   });
   return out;
 }
@@ -1467,7 +1476,8 @@ function expandEnt(list){
     const es=entOf(p);
     if(es.length){ es.forEach(e=>out.push(e)); return; }
     const segs=(p.lines||[]).flat().map(([t,k])=>[t,k==='k']);
-    out.push({n:p.n, li:0, q:p.title+'＿', ans:segs.length?[['',false]].concat(segs):[[p.title,true]], p});
+    out.push({n:p.n,li:0,mode:'whole',kth:1,lead:null,q:'',
+      ans:segs.length?segs:[[p.title,true]],p});
   });
   return out;
 }
@@ -1554,11 +1564,16 @@ function renderRecite(){
   card.style.setProperty('--c', cOf(p.ch));
   const qHtml=e.q.split('＿').map((t,i)=>(i?'<span class="bk"></span>':'')+esc(t)).join('');
   const fullHtml=e.ans.map(([t,isK])=>isK?`<b class="rk">${esc(t)}</b>`:esc(t)).join('');
+  const isWhole=e.mode==='whole';
+  const askHtml=isWhole
+    ? `${e.lead?`<div class="whole-lead">${esc(e.lead)}</div>`:''}<span class="bk whole-bk"></span>`
+    : qHtml;
+  const hintTxt=isWhole?'在心里回忆整句 · 轻点揭晓':'先把空位在心里补上 · 轻点揭晓';
   const rateFn=TODAY_MODE?'todayRate':'rate';
   const srsCur=S.srs[ekey(e)];
   const memTag=TODAY_MODE?`<span class="memtag ${srsCur?'review':'new'}">${srsCur?('复习 · 第'+(srsCur.r+1)+'次'):'新学'}</span>`:'';
   card.innerHTML=`
-    <div class="r-meta"><i class="dot" style="background:${cOf(p.ch)}"></i>${p.ch}${p.sub&&p.sub!==p.ch?' · '+p.sub:''} · ${pad3(p.n)} · 第 ${e.li+1} 句 ${memTag}</div>
+    <div class="r-meta"><i class="dot" style="background:${cOf(p.ch)}"></i>${p.ch}${p.sub&&p.sub!==p.ch?' · '+p.sub:''} · ${pad3(p.n)} · 第 ${e.kth} 条 ${memTag}</div>
     <div class="r-title" style="font-size:calc(19px * var(--fs))">${esc(p.title)}</div>
     <div class="r-rule"></div>
     ${RSHOW
@@ -1568,9 +1583,9 @@ function renderRecite(){
            <button class="mid" onclick="${rateFn}('mid')">模糊</button>
            <button class="ok" onclick="${rateFn}('ok')">会了</button>
          </div>`
-      : `<div class="r-ask">${qHtml}</div>
+      : `<div class="r-ask${isWhole?' whole':''}">${askHtml}</div>
          <div class="r-cover sm" onclick="reveal()">
-           <div class="hint">先把空位在心里补上 · 轻点揭晓</div>
+           <div class="hint">${hintTxt}</div>
            <button class="reveal-btn" onclick="event.stopPropagation();reveal()">揭晓答案</button>
          </div>`}
   `;
@@ -2641,7 +2656,8 @@ const CHANGELOG=[
    '每日目标支持自定义（1–460 条），不再只给四档',
    '进度持久化：切到别的模块再回来，从刚背的那条继续，不重新开始',
    '每条标新学/复习，完成页分开统计复习、新学、重学和连续打卡天数',
-   '加了启动画面：添加到主屏打开时先显示页字印章与标题，再淡出进入，点一下可跳过']},
+   '加了启动画面：添加到主屏打开时先显示页字印章与标题，再淡出进入，点一下可跳过',
+   '背诵条目重做：不再把整句红字挖空只剩虚线；引导句和它的答案配成一张卡，混合句挖空、整句红字整句回忆，每张卡都完整通顺']},
  {v:'2.1',d:'2026-11-13',t:'速览排版与考点关联重做',items:[
    '速览色块重排：一句话不再被切成两半，逗号连着的句子、括号里没说完的内容都并回同一段，只有真正的小标题才单独成色块',
    '肖八考点关联全部重算：按考点正文里的原话对应，不再凭字面瞎跳；192 题有准确对应，其余如实标注「速览未收录」，不硬链',
