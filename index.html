@@ -303,6 +303,9 @@ h1 em{font-style:normal;color:var(--red)}
 .memtag{margin-left:auto;padding:2px 8px;border-radius:20px;font-size:10.5px;letter-spacing:.04em}
 .memtag.new{background:color-mix(in srgb,var(--red) 13%,transparent);color:var(--red)}
 .memtag.review{background:color-mix(in srgb,#2E6E63 14%,transparent);color:#2E6E63}
+.bug-mini{margin-left:2px;padding:3px;border:none;background:none;color:var(--ink-3);
+  display:inline-flex;align-items:center;border-radius:6px}
+.bug-mini:active{color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent)}
 .r-title{font-family:var(--serif);font-size:calc(25px * var(--fs));font-weight:600;line-height:1.3;margin:12px 0 4px;letter-spacing:.02em}
 .r-rule{height:1px;background:var(--line);margin:14px 0 0}
 .r-body{margin-top:14px;overflow-y:auto;max-height:46vh;flex:0 0 auto;scrollbar-width:thin;overscroll-behavior:contain}
@@ -622,6 +625,19 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .sheet .act button.primary{background:var(--red);color:#fff;border-color:var(--red)}
 .sheet .act button.danger{color:var(--red)}
 .sheet .fine{font-size:10.5px;color:var(--ink-3);line-height:1.7;margin-top:10px}
+.bug-loc{font-size:11.5px;color:var(--ink-2);background:var(--paper);border:1px solid var(--line);
+  border-radius:9px;padding:8px 11px;margin-bottom:9px}
+.bug-row{border:1px solid var(--line);border-radius:10px;padding:10px 11px;margin-bottom:8px;background:var(--card)}
+.bug-row-h{display:flex;align-items:center;gap:7px}
+.bug-row-h b{font-size:12px;font-weight:600;flex:1;min-width:0}
+.bug-tag{flex:0 0 auto;font-size:10px;color:var(--red);background:color-mix(in srgb,var(--red) 12%,transparent);
+  border-radius:5px;padding:1px 6px}
+.bug-at{flex:0 0 auto;font-size:10px;color:var(--ink-3)}
+.bug-del{flex:0 0 auto;border:none;background:none;color:var(--ink-3);font-size:11px;padding:2px 4px}
+.bug-txt{font-size:11.5px;color:var(--ink-2);line-height:1.6;margin-top:7px;word-break:break-all}
+.bug-txt.empty-txt{color:var(--ink-3);font-style:italic}
+.bug-acts{display:flex;gap:8px;margin-top:6px}
+.bug-acts button{flex:1;padding:9px 0;border-radius:10px;border:1px solid var(--line);background:var(--card);font-size:12px}
 .sheet .keyrow{display:flex;gap:8px;margin:9px 0 6px}
 .sheet .keyrow input{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
   background:var(--card);color:var(--ink);font-size:13px;outline:none;font-family:inherit}
@@ -1016,7 +1032,7 @@ const CH = [
 /* ---------- 状态 ---------- */
 const KEY='yzy2027.v1';
 const DEF={status:{},fav:[],due:{},seen:{},last:null,core:true,log:{},theme:'light',fs:'m',
-  sub:'rec',goal:20,notes:{},quizLog:{},qwrong:[],qdone:[],ient:{},srs:{},today:null};
+  sub:'rec',goal:20,notes:{},quizLog:{},qwrong:[],qdone:[],ient:{},srs:{},today:null,bugLog:[]};
 let S=(()=>{
   try{ return Object.assign({},DEF,JSON.parse(localStorage.getItem(KEY)||'{}')); }
   catch(e){ return Object.assign({},DEF); }
@@ -1299,6 +1315,7 @@ function renderList(){
         <button class="ghost ${(S.fav||[]).includes(p.n)?'on':''}" onclick="toggleFav(event,${p.n})">${(S.fav||[]).includes(p.n)?'★ 已收藏':'☆ 收藏'}</button>
         <button class="ghost ${S.status[p.n]==='ok'?'on':''}" onclick="markOk(event,${p.n})">${S.status[p.n]==='ok'?'✓ 已掌握':'标记已掌握'}</button>
         <button class="ghost" onclick="toggleNote(${p.n})">📝 笔记</button>
+        <button class="ghost" onclick="bugFromCard(event,${p.n})">🐛 报错</button>
       </div>
       <div class="note-box" id="noteBox-${p.n}" style="display:none">
         <textarea placeholder="记点自己的理解 / 易混点（仅本机保存）" oninput="saveNote(${p.n},this.value)">${esc(S.notes[p.n]||'')}</textarea>
@@ -1402,6 +1419,62 @@ function toggleNote(n){
 }
 function saveNote(n,val){
   S.notes[n]=val; save();
+}
+
+/* ---------- 问题（bug）随手记录 ---------- */
+let BUGCTX=null;
+function bugTime(ts){
+  const d=new Date(ts);
+  const p=x=>String(x).padStart(2,'0');
+  return (d.getMonth()+1)+'-'+d.getDate()+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+function openBug(where,loc,n){
+  BUGCTX={where,loc,n};
+  openSheet('记录问题',`
+    <div class="bug-loc">${esc(where)} · ${esc(loc)}</div>
+    <textarea id="bugText" placeholder="这里有什么问题？错别字 / 排版 / 内容对不上都可以写；不写也能只标记位置"></textarea>
+    <div class="act">
+      <button class="primary" onclick="saveBug()">保存记录</button>
+      <button onclick="closeSheet()">取消</button>
+    </div>`);
+}
+function saveBug(){
+  const c=BUGCTX; if(!c) return;
+  const el=document.getElementById('bugText');
+  S.bugLog=S.bugLog||[];
+  S.bugLog.unshift({at:Date.now(),where:c.where,loc:c.loc,n:c.n,text:el?el.value:''});
+  save(); closeSheet(); mtoast('已记录，共 '+S.bugLog.length+' 条');
+}
+function bugFromCard(ev,n){
+  ev.stopPropagation();
+  const p=PTS.find(x=>x.n===n);
+  openBug('速览', pad3(n)+' '+(p?p.title:''), n);
+}
+function bugFromRecite(ev){
+  ev.stopPropagation();
+  const e=RQ[RIDX]; if(!e) return;
+  openBug('背诵', pad3(e.n)+' 第'+e.kth+'条', e.n);
+}
+function openBugs(){
+  const logs=S.bugLog||[];
+  const rows=logs.length?logs.map((b,i)=>`
+    <div class="bug-row">
+      <div class="bug-row-h"><span class="bug-tag">${esc(b.where)}</span>
+        <b>${esc(b.loc)}</b><span class="bug-at">${bugTime(b.at)}</span>
+        <button class="bug-del" onclick="delBug(${i})">删</button></div>
+      ${b.text?`<div class="bug-txt">${esc(b.text)}</div>`:'<div class="bug-txt empty-txt">仅标记位置</div>'}
+    </div>`).join(''):'<div class="empty">还没有记录。在速览或背诵里点小虫子图标就能记。</div>';
+  openSheet('问题记录 '+logs.length+' 条',`
+    ${rows}
+    ${logs.length?`<div class="bug-acts">
+      <button onclick="copyBugs()">复制全部</button>
+      <button onclick="clearBugs()">清空</button></div>`:''}`);
+}
+function delBug(i){ S.bugLog.splice(i,1); save(); openBugs(); }
+function clearBugs(){ S.bugLog=[]; save(); openBugs(); }
+function copyBugs(){
+  const s=(S.bugLog||[]).map(b=>`[${bugTime(b.at)}] ${b.where} ${b.loc}${b.text?' — '+b.text:''}`).join('\n');
+  navigator.clipboard&&navigator.clipboard.writeText(s).then(()=>mtoast('已复制 '+S.bugLog.length+' 条'));
 }
 
 /* ---------- 今日任务（墨墨式：到期复习 + 新学，艾宾浩斯排期） ---------- */
@@ -1573,7 +1646,7 @@ function renderRecite(){
   const srsCur=S.srs[ekey(e)];
   const memTag=TODAY_MODE?`<span class="memtag ${srsCur?'review':'new'}">${srsCur?('复习 · 第'+(srsCur.r+1)+'次'):'新学'}</span>`:'';
   card.innerHTML=`
-    <div class="r-meta"><i class="dot" style="background:${cOf(p.ch)}"></i>${p.ch}${p.sub&&p.sub!==p.ch?' · '+p.sub:''} · ${pad3(p.n)} · 第 ${e.kth} 条 ${memTag}</div>
+    <div class="r-meta"><i class="dot" style="background:${cOf(p.ch)}"></i>${p.ch}${p.sub&&p.sub!==p.ch?' · '+p.sub:''} · ${pad3(p.n)} · 第 ${e.kth} 条 ${memTag}<button class="bug-mini" onclick="bugFromRecite(event)" aria-label="记录问题"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="8" y="6" width="8" height="13" rx="4"/><path d="M12 6V4M9 9h.01M15 9h.01M12 12v6M5 10l-2-1M19 10l2-1M5 15l-2 1M19 15l2 1"/></svg></button></div>
     <div class="r-title" style="font-size:calc(19px * var(--fs))">${esc(p.title)}</div>
     <div class="r-rule"></div>
     ${RSHOW
@@ -2291,7 +2364,7 @@ async function makeCode(){
   if(pw.length<4){ mtoast('先在下面输入密钥（至少 4 位）'); return; }
   S.key=pw; save();
   const pack={v:2,at:Date.now(),status:S.status,fav:S.fav,due:S.due,seen:S.seen,log:S.log,
-    ient:S.ient,srs:S.srs,today:S.today};
+    ient:S.ient,srs:S.srs,today:S.today,bugLog:S.bugLog};
   try{
     const k=await kderive(pw);
     const iv=crypto.getRandomValues(new Uint8Array(12));
@@ -2335,7 +2408,7 @@ async function doRestore(){
     const o=JSON.parse(new TextDecoder().decode(pt));
     S.key=pw;
     S.status=o.status||{}; S.fav=o.fav||[]; S.due=o.due||{}; S.seen=o.seen||{}; S.log=o.log||{}; S.ient=o.ient||{};
-    S.srs=o.srs||{}; S.today=o.today||null;
+    S.srs=o.srs||{}; S.today=o.today||null; S.bugLog=o.bugLog||[];
     EMAP=null; TODAY_MODE=false; RQ=[]; RIDX=0; REND=false;
     S.syncAt=o.at||Date.now();
     save(); applyPrefs(); renderAll();
@@ -2381,6 +2454,7 @@ function openSettings(){
       <h4>数据</h4>
       <button class="opt" onclick="openExport()"><span>导出进度<small>换设备时复制这段文本</small></span><span class="n">复制</span></button>
       <button class="opt" onclick="openImport()"><span>导入进度<small>粘贴之前导出的文本</small></span><span class="n">粘贴</span></button>
+      <button class="opt" onclick="openBugs()"><span>问题记录<small>随手标记的 bug 与待改处</small></span><span class="n">${(S.bugLog||[]).length}</span></button>
       <button class="opt" onclick="resetAll()"><span style="color:var(--red)">清空全部记录<small>掌握、收藏、复习计划都会清零</small></span><span class="n">重置</span></button>
     </div>
 
@@ -2657,7 +2731,8 @@ const CHANGELOG=[
    '进度持久化：切到别的模块再回来，从刚背的那条继续，不重新开始',
    '每条标新学/复习，完成页分开统计复习、新学、重学和连续打卡天数',
    '加了启动画面：添加到主屏打开时先显示页字印章与标题，再淡出进入，点一下可跳过',
-   '背诵条目重做：不再把整句红字挖空只剩虚线；引导句和它的答案配成一张卡，混合句挖空、整句红字整句回忆，每张卡都完整通顺']},
+   '背诵条目重做：不再把整句红字挖空只剩虚线；引导句和它的答案配成一张卡，混合句挖空、整句红字整句回忆，每张卡都完整通顺',
+   '速览和背诵都加了小虫子按钮，点一下就能随手记录问题（错别字/排版/内容），自动带位置，设置里可查看、复制、清空']},
  {v:'2.1',d:'2026-11-13',t:'速览排版与考点关联重做',items:[
    '速览色块重排：一句话不再被切成两半，逗号连着的句子、括号里没说完的内容都并回同一段，只有真正的小标题才单独成色块',
    '肖八考点关联全部重算：按考点正文里的原话对应，不再凭字面瞎跳；192 题有准确对应，其余如实标注「速览未收录」，不硬链',
