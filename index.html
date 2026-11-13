@@ -782,6 +782,33 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .hat-chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink-2);
   border-radius:999px;padding:6px 13px;font-size:12.5px;font-family:var(--sans)}
 .hat-chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.hc-wrap{padding:4px 0 20px}
+.hc-top{display:flex;align-items:center;gap:12px;margin:6px 0 10px}
+.hc-bar{flex:1;height:4px;border-radius:4px;background:var(--line);overflow:hidden}
+.hc-bar i{display:block;height:100%;background:var(--red);border-radius:4px;transition:width .2s}
+.hc-back{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--ink-2);
+  border-radius:8px;padding:5px 10px;font-size:12px;font-family:var(--sans)}
+.hc-no{font-size:12px;color:var(--ink-3);letter-spacing:.04em}
+.hc-q{font-family:var(--serif);font-size:19px;line-height:1.6;margin:10px 0 18px;letter-spacing:.02em}
+.hc-q b{color:var(--red);font-weight:600}
+.hc-opts{display:flex;flex-direction:column;gap:10px}
+.hc-opt{text-align:left;padding:14px 16px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);font-size:14.5px;line-height:1.5;font-family:var(--sans)}
+.hc-opt.right{border-color:#2f7d4f;background:rgba(47,125,79,.07);color:#245e3a;font-weight:600}
+.hc-opt.bad{border-color:var(--red);background:rgba(165,52,46,.07);color:var(--red)}
+.hc-judge{display:flex;flex-direction:column;gap:4px;margin-top:16px;padding:12px 14px;border-radius:12px;
+  background:var(--card);border:1px solid var(--line);font-size:12.5px;line-height:1.6}
+.hc-judge.ok b{color:#245e3a}
+.hc-judge.no b{color:var(--red)}
+.hc-judge a{color:var(--red);text-decoration:none;font-size:12px}
+.hc-judge .mut{color:var(--ink-3);font-size:12px}
+.hc-next{margin-top:14px}
+.hc-score{margin:14px 0;font-size:15px;font-family:var(--serif);line-height:1.9}
+.hc-score b.ok{color:#245e3a}
+.hc-score b.no{color:var(--red)}
+.hc-cta{display:flex;flex-direction:column;gap:10px}
+.cta.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.cta.ghost span.l b{color:var(--ink)}
 .hat-search{margin:0 0 10px}
 .hat-search input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;
   background:var(--card);color:var(--ink);font-size:13px;outline:none}
@@ -2748,6 +2775,82 @@ const MN_LINK=[ '中共一大','中共三大','中共四大','八七会议',null
   '十一届三中全会','中共十二大','中共十三大','中共十四大','中共十五大','中共十六大','中共十七大',
   '中共十八大','中共十九大','中共二十大'];
 /* ============ 帽子题专栏 ============ */
+/* ============ 选帽自测：同一主体的几顶帽子打乱，只选对的那一顶 ============ */
+let HC=null;
+function hatBuildQs(){
+  const groups={}; HAT_OK.forEach(h=>(groups[h[0]]=groups[h[0]]||[]).push(h));
+  const qs=[];
+  Object.keys(groups).forEach(sub=>{
+    const g=groups[sub];
+    g.forEach((h,i)=>{
+      const ans=h[2];
+      /* 干扰项优先取同主体其它帽子；不够时取别的主体里同名帽子（本质/根本/前提…），
+         再不够才用全书答案。互相包含的（“实事求是” vs “解放思想、实事求是”）不算干扰项，
+         否则会出现两个都对的选项 */
+      const clean=arr=>[...new Set(arr.filter(a=>a && a!==ans && !a.includes(ans) && !ans.includes(a)))];
+      let pool=clean(g.filter((x,j)=>j!==i).map(x=>x[2]));
+      if(pool.length<3) pool=clean(pool.concat(HAT_OK.filter(x=>x[1]===h[1]).map(x=>x[2])));
+      if(pool.length<3) pool=clean(pool.concat(HAT_OK.map(x=>x[2])));
+      qs.push({sub:sub, hat:h[1], ans:ans, opts:shuffle([ans].concat(shuffle(pool).slice(0,3))), pt:h[3]});
+    });
+  });
+  return shuffle(qs);
+}
+function startHatChoice(list){
+  HC={qs:(list&&list.length?shuffle(list.slice()):hatBuildQs()), i:0, pick:-1, right:0, wrongs:[]};
+  HAT_CHOICE=true; renderHats();
+}
+function hatPick(j){
+  if(!HC||HC.pick>=0) return;
+  HC.pick=j;
+  const q=HC.qs[HC.i];
+  if(q.opts[j]===q.ans) HC.right++; else HC.wrongs.push(q);
+  haptic(); renderHats();
+}
+function hatNext(){ if(!HC) return; HC.pick=-1; HC.i++; renderHats(); }
+function hatExit(){ HC=null; HAT_CHOICE=false; renderHats(); }
+function hatRedoWrong(){ if(!HC) return; const w=HC.wrongs.slice(); startHatChoice(w); }
+function hatQuizHTML(){
+  const qs=HC.qs, n=qs.length;
+  if(HC.i>=n){
+    const bad=HC.wrongs.length;
+    return `<div class="hc-wrap">
+      <div class="hc-top"><h2>选帽自测 · 本轮结束</h2><button class="hc-back" onclick="hatExit()">返回卡片</button></div>
+      <div class="hc-score"><b>${n}</b> 题，答对 <b class="ok">${HC.right}</b> 题，答错 <b class="no">${bad}</b> 题</div>
+      <div class="hc-cta">
+        ${bad?`<button class="cta" onclick="hatRedoWrong()"><span class="l"><b>重练答错的 ${bad} 题</b><span>错的这 ${bad} 顶帽子再打乱一遍</span></span><i>→</i></button>`:''}
+        <button class="cta ghost" onclick="startHatChoice()"><span class="l"><b>再来一轮</b><span>重新打乱全部 ${HAT_OK.length} 题</span></span><i>→</i></button>
+      </div>
+    </div>`;
+  }
+  const q=qs[HC.i], picked=HC.pick;
+  const opts=q.opts.map((o,j)=>{
+    let cls='hc-opt';
+    if(picked>=0){
+      if(o===q.ans) cls+=' right';
+      else if(j===picked) cls+=' bad';
+    }
+    return `<button class="${cls}" ${picked>=0?'disabled':''} onclick="hatPick(${j})">${esc(o)}</button>`;
+  }).join('');
+  let judge='';
+  if(picked>=0){
+    const ok=q.opts[picked]===q.ans;
+    judge=`<div class="hc-judge ${ok?'ok':'no'}">
+      <b>${ok?'选对了':'选错了'}</b>
+      <span>${q.sub}的「${esc(q.hat.split('（')[0])}」＝${esc(q.ans)}</span>
+      ${q.pt?`<a onclick="openCardJump(${q.pt})">关联第 ${pad3(q.pt)} 条 ›</a>`:'<span class="mut">原文未定位</span>'}
+    </div>
+    <button class="cta hc-next" onclick="hatNext()"><span class="l"><b>${HC.i+1<n?'下一题':'看本轮结果'}</b><span>${HC.i+1} / ${n}</span></span><i>→</i></button>`;
+  }
+  return `<div class="hc-wrap">
+    <div class="hc-top"><span class="hc-bar"><i style="width:${Math.round(HC.i/n*100)}%"></i></span>
+      <button class="hc-back" onclick="hatExit()">退出</button></div>
+    <div class="hc-no">第 ${HC.i+1} / ${n} 题 · 已经答对 ${HC.right} 题</div>
+    <div class="hc-q">${esc(q.sub)}的<b>「${esc(q.hat)}」</b>是什么？</div>
+    <div class="hc-opts">${opts}</div>
+    ${judge}
+  </div>`;
+}
 function hatListHTML(list){
   /* 按主体分组：一个主体下面挂它的各种帽子 */
   const groups={};
@@ -2779,6 +2882,7 @@ function hatListIn(cat){
 }
 function renderHats(){
   const box=document.getElementById('topicBody');
+  if(HC){ box.innerHTML=hatQuizHTML(); return; }
   const pts=new Set(HAT_OK.map(h=>h[3]));
   const qn=REALQ.filter(q=>pts.has(q.point)).length;
   const chips=['<button class="hat-chip '+(HAT_CAT==='all'?'on':'')+'" onclick="setHatCat(\'all\')">全部 '+HAT_OK.length+'</button>'];
@@ -2798,6 +2902,7 @@ function renderHats(){
       </div>
       <div class="hat-tools">
         <button class="hat-toggle ${HAT_MASK?'on':''}" id="hatMaskBtn" onclick="toggleHatMask()">${HAT_MASK?'显示全部答案':'遮住答案自测'}</button>
+        <button class="hat-toggle" onclick="startHatChoice()">选帽自测 ${HAT_OK.length} 题</button>
       </div>
     </div>
     <div class="hat-search"><input id="hatQ" placeholder="搜主体 / 帽子 / 答案，如 马克思主义、本质、人民性" value="${esc(kw)}" oninput="onHatQ(this.value)"></div>
@@ -3342,8 +3447,14 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.16';
+const VER='2.17';
 const CHANGELOG=[
+ {v:'2.17',d:'2026-11-13',t:'选帽自测：四顶帽子打乱，只选对的那一顶',items:[
+   '帽子题页新增「选帽自测 49 题」：题干给主体和帽子（如“中国特色社会主义法治体系的『前提』是什么”），四个选项全是真实答案，只有一个对',
+   '干扰项优先取同一主体的其它帽子；主体帽子不够时取别的主体里同名帽子（本质、根本、前提…），再不够才用全书答案，所以选项都像这道题的答案，不掺无关句子',
+   '互相包含的答案（“实事求是”和“解放思想、实事求是”）不许同时当选项，避免两个都对的烂题',
+   '选完立即出对错、亮出正确项、给关联考点入口（可直接跳到速览那一条），再下一题',
+   '结束页给正确率，答错的可一键「重练答错的 N 题」，只把错的再打乱一遍']},
  {v:'2.16',d:'2026-11-13',t:'分类条回到单行横滑，但把手势修好了',items:[
    '分类条恢复成一行左右滑，不再占三行高度；右边加渐隐，能看出后面还有',
    '上一次滑不动的真正原因：手指在 chip 上起手拖动，松手时被当成一次点击，于是"滑一下就选中了"，看着像卡住；现在拖动超过 9px 就忽略这次点击，滑和点分得开',
