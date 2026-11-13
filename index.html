@@ -379,6 +379,7 @@ html[data-theme="night"] .rate .ok{background:#1A2A26;border-color:#254039}
 /* ============ 挖空 ============ */
 .cloze-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
 .cloze-count{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+#cCard,#cCard .card-body{scroll-margin-top:calc(var(--hdr,58px) + 92px)}
 .cov{cursor:pointer;border-radius:7px;background:var(--cov);color:transparent;margin:5px 0;
   border:1px solid var(--cov-line);padding:3px 9px;min-height:26px;
   transition:background .2s,color .2s,border-color .2s;user-select:none;
@@ -429,6 +430,25 @@ html[data-theme="night"] .rate .ok{background:#1A2A26;border-color:#254039}
 .mn-note b{font-family:var(--serif);color:var(--red);margin-right:6px}
 .mn-note .go{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--red);border-bottom:1px solid currentColor}
 .mn-head{font-size:11.5px;color:var(--ink-3);margin:14px 0 8px;letter-spacing:.08em}
+/* ============ 会议大观：会议名/年份 + 编号要点 ============ */
+.mt{margin:2px 0 16px;padding-left:11px;border-left:2px solid var(--line-2)}
+.mth{display:flex;align-items:baseline;gap:8px;margin:12px 0 6px}
+.mth:first-child{margin-top:2px}
+.mth b{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.03em;color:var(--ink)}
+.mth i{font-style:normal;font-size:11.5px;color:var(--red);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.mtp{font-size:14px;line-height:1.78;color:var(--ink);padding-left:12px;text-indent:-12px;margin:0 0 3px}
+.mtx{font-size:13.5px;line-height:1.72;color:var(--ink-2);padding-left:24px;margin:0 0 3px}
+.mtp,.mtx{margin:0 0 4px}
+.mnum{color:var(--ink-3);font-variant-numeric:tabular-nums;margin-right:2px}
+.cov2{display:inline;cursor:pointer;border-radius:5px;padding:1px 6px;
+  background:var(--cov);color:transparent;
+  background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--card) 42%,transparent) 0 6px,transparent 6px 12px);
+  transition:background .2s,color .2s;user-select:none}
+.cov2.on{background:none;color:var(--red);cursor:default;padding:1px 0;font-weight:600}
+.mth.flash b,.mtp.flash,.mtx.flash{background:rgba(200,170,60,.18);border-radius:4px;box-shadow:0 0 0 3px rgba(200,170,60,.18)}
+.mn-wrap{display:flex;flex-direction:column;gap:3px}
+.mnline{font-size:14px;line-height:1.78;color:var(--ink-2);letter-spacing:.02em}
+.mn-wrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 
 /* ============ 每日目标 ============ */
 .goal-card{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);
@@ -1005,91 +1025,90 @@ const HATS = [
   ["马克思主义", "本质属性", "人民性", 2],
   ["马克思主义", "根本特征（区别于其他理论）", "实践性", 2],
   ["马克思主义", "基本特征", "科学性与革命性的统一", 2],
-  ["马克思主义", "根本价值目标", "实现人的自由而全面的发展", 2],
+  ["马克思主义", "根本价值目标", "实现人的自由而全面的发展", 11],
   ["马克思主义", "最鲜明的特征", "科学性", 2],
   ["马克思主义", "创立的关键", "马克思确立了科学的实践观", 2],
-  ["马克思主义", "公开问世的标志", "《共产党宣言》发表", 2],
-  ["马克思主义", "两大发现（两大基石）", "唯物史观和剩余价值学说", 2],
-  ["马克思主义", "思想前提", "《德法年鉴》完成两个转变", 2],
-  ["马克思主义", "经济学说的核心内容和基石", "剩余价值理论", 2],
-  ["马克思主义", "活的灵魂", "实事求是、群众路线、独立自主", 2],
-  ["马克思主义", "理论品质", "与时俱进", 2],
-  ["马克思主义", "最崇高的社会理想", "共产主义", 2],
+  ["马克思主义", "公开问世的标志", "《共产党宣言》发表", 13],
+  ["马克思主义", "两大发现（两大基石）", "唯物史观和剩余价值学说", 6],
+  ["马克思主义", "思想前提", "《德法年鉴》完成两个转变", 13],
+  ["马克思主义", "经济学说的核心内容和基石", "剩余价值理论", 5],
+  ["马克思主义", "活的灵魂", "实事求是、群众路线、独立自主", 90],
+  ["马克思主义", "最崇高的社会理想", "共产主义", 13],
   ["人", "本质", "一切社会关系的总和", 4],
-  ["社会历史发展", "根本动力", "社会基本矛盾", 3],
-  ["人类认识世界和改造世界", "根本目标", "认识必然、争取自由", 4],
-  ["人生价值评价", "根本尺度", "历史标准", 5],
+  ["社会历史发展", "根本动力", "社会基本矛盾", 26],
+  ["人类认识世界和改造世界", "根本目标", "认识必然、争取自由", 11],
+  ["人生价值评价", "根本尺度", "历史标准", 12],
   ["政治上层建筑", "核心", "国家政权", 3],
   ["意识形态", "居于核心地位、起主导作用的", "政治法律思想", 3],
-  ["社会再生产", "核心问题", "社会总产品的实现问题（价值补偿和实物补偿）", 9],
+  ["社会再生产", "核心问题", "社会总产品的实现问题（价值补偿和实物补偿）", 22],
   ["理解政治经济学", "枢纽", "劳动二重性理论", 5],
   ["货币", "本质", "固定充当一般等价物的商品", 27],
   ["货币", "最基本的职能", "价值尺度和流通手段", 27],
-  ["商品经济其他一切矛盾", "基础", "私人劳动和社会劳动的矛盾", 27],
+  ["商品经济其他一切矛盾", "基础", "私人劳动和社会劳动的矛盾", 25],
   ["资本主义工资", "本质", "劳动力的价值或价格", 16],
-  ["资本积累", "唯一源泉", "剩余价值", 16],
-  ["资本主义扩大再生产", "源泉", "资本积累", 16],
-  ["资本周转快慢", "关键", "资本周转时间；固定资本和流动资本的构成", 16],
-  ["金融垄断资本形成壮大", "重要制度条件", "金融自由化与金融创新", 16],
-  ["当代资本主义", "最突出、最鲜明、最主要的特征", "国际金融资本的垄断", 16],
+  ["资本积累", "唯一源泉", "剩余价值", 24],
+  ["资本主义扩大再生产", "源泉", "资本积累", 24],
+  ["资本周转快慢", "关键", "资本周转时间；固定资本和流动资本的构成", 23],
+  ["金融垄断资本形成壮大", "重要制度条件", "金融自由化与金融创新", 15],
+  ["当代资本主义", "最突出、最鲜明、最主要的特征", "国际金融资本的垄断", 15],
   ["计划和市场", "定位", "都是经济手段，不是社会主义与资本主义的本质区别", 74],
   ["维新派与洋务派分歧", "实质", "要不要学习西方的政治制度与思想文化", 42],
   ["维新派与守旧派论战", "中心", "要不要变法", 42],
   ["中间路线", "实质", "旧民主主义的道路", 60],
-  ["中国近代史", "第一次大规模反侵略武装斗争", "三元里人民抗英斗争", 40],
-  ["中国近代史", "睁眼看世界的第一人", "林则徐", 40],
-  ["太平天国", "失败的根本原因", "农民阶级自身的阶级局限性", 41],
-  ["辛亥革命", "失败的根本原因", "半殖民地半封建中国，资本主义建国方案行不通", 43],
-  ["护法运动", "失败的标志意义", "旧民主主义革命终结", 45],
-  ["五四运动", "标志意义", "新民主主义革命阶段的开端", 46],
-  ["五四运动", "第一次全面觉醒", "中华民族的全面觉醒", 46],
-  ["新民主主义革命", "核心问题（中心问题）", "无产阶级的领导权", 50],
-  ["新旧民主主义革命", "根本区别标志", "领导权掌握在无产阶级还是资产阶级手中", 50],
-  ["革命", "首要问题", "分清敌友", 50],
-  ["大革命失败后的中国革命", "能坚持发展的根本原因", "党依靠农民、领导农民进行土地制度革命", 52],
-  ["武装反抗国民党反动派", "第一枪", "南昌起义", 53],
-  ["三路大军相互策应", "标志意义", "揭开人民解放战争战略进攻的序幕", 57],
-  ["人民政协召开", "标志意义", "中国新型政党制度确立", 62],
-  ["中共中央进驻香山", "标志意义", "中国革命重心从农村转向城市", 63],
-  ["1949 年毛泽东谈话", "标志意义", "民主党派地位的根本变化", 63],
-  ["中国进入社会主义社会", "最主要的标志", "社会主义经济制度的确立", 66],
-  ["毛泽东思想", "精髓", "实事求是", 70],
-  ["毛泽东思想", "活的灵魂", "实事求是、群众路线、独立自主", 70],
-  ["邓小平理论", "精髓", "解放思想、实事求是", 72],
+  ["中国近代史", "第一次大规模反侵略武装斗争", "三元里人民抗英斗争", 38],
+  ["中国近代史", "睁眼看世界的第一人", "林则徐", 41],
+  ["太平天国", "失败的根本原因", "农民阶级自身的阶级局限性", 38],
+  ["辛亥革命", "失败的根本原因", "半殖民地半封建中国，资本主义建国方案行不通", 50],
+  ["护法运动", "失败的标志意义", "旧民主主义革命终结", 49],
+  ["五四运动", "标志意义", "新民主主义革命阶段的开端", 49],
+  ["五四运动", "第一次全面觉醒", "中华民族的全面觉醒", 45],
+  ["新民主主义革命", "核心问题（中心问题）", "无产阶级的领导权", 49],
+  ["新旧民主主义革命", "根本区别标志", "领导权掌握在无产阶级还是资产阶级手中", 49],
+  ["革命", "首要问题", "分清敌友", 82],
+  ["大革命失败后的中国革命", "能坚持发展的根本原因", "党依靠农民、领导农民进行土地制度革命", 51],
+  ["武装反抗国民党反动派", "第一枪", "南昌起义", 54],
+  ["三路大军相互策应", "标志意义", "揭开人民解放战争战略进攻的序幕", 61],
+  ["人民政协召开", "标志意义", "中国新型政党制度确立", 65],
+  ["中共中央进驻香山", "标志意义", "中国革命重心从农村转向城市", 62],
+  ["1949 年毛泽东谈话", "标志意义", "民主党派地位的根本变化", 65],
+  ["中国进入社会主义社会", "最主要的标志", "社会主义经济制度的确立", 71],
+  ["毛泽东思想", "精髓", "实事求是", 90],
+  ["毛泽东思想", "活的灵魂", "实事求是、群众路线、独立自主", 90],
+  ["邓小平理论", "精髓", "解放思想、实事求是", 74],
   ["邓小平理论", "首要基本理论问题", "什么是社会主义、怎样建设社会主义", 72],
-  ["党", "思想路线的核心", "实事求是", 70],
-  ["党", "三大优良作风", "理论联系实际、密切联系群众、批评与自我批评", 70],
-  ["战胜敌人", "三大法宝", "统一战线、武装斗争、党的建设", 70],
-  ["社会主义国家政治生活", "主题", "正确处理人民内部矛盾", 70],
-  ["初级阶段基本路线", "核心内容", "一个中心、两个基本点", 71],
-  ["建设中国特色社会主义", "总依据", "社会主义初级阶段理论", 71],
-  ["《论十大关系》", "标志意义", "党探索社会主义建设道路的良好开端", 70],
-  ["当今世界", "两大主题", "和平与发展", 71],
-  ["高质量发展", "主线", "深化供给侧结构性改革", 75],
-  ["高质量发展", "必由之路", "加快实现高水平科技自立自强", 75],
-  ["高质量发展", "必然要求", "推进农业现代化", 75],
-  ["高质量发展", "战略基点", "加快构建新发展格局", 75],
-  ["高质量发展", "最终目的", "人民幸福安康", 75],
-  ["全面建设社会主义现代化国家", "首要任务", "高质量发展", 75],
-  ["新发展格局", "基本立足点", "满足国内需求", 75],
-  ["新发展格局", "战略基点", "扩大内需", 75],
-  ["新发展格局", "最本质特征", "实现高水平自立自强", 75],
-  ["新发展格局", "战略方向", "坚持供给侧结构性改革", 75],
-  ["新发展格局", "战略支撑", "科技自立自强", 75],
-  ["新发展格局", "关键", "经济循环畅通无阻", 75],
-  ["全面依法治国", "前提", "科学立法", 79],
-  ["全面依法治国", "关键", "严格执法", 79],
-  ["全面依法治国", "重点", "公正司法", 79],
-  ["全面依法治国", "基础", "全民守法", 79],
-  ["中国特色社会主义法治体系", "前提", "完备的法律规范体系", 79],
-  ["中国特色社会主义法治体系", "重点", "高效的法治实施体系", 79],
-  ["中国特色社会主义法治体系", "重要依托", "有力的法治保障体系", 79],
-  ["中国特色社会主义法治体系", "本质要求", "完善的党内法规体系", 79],
-  ["中国特色社会主义法治体系", "重要保障", "严密的法治监督体系", 79],
-  ["公民权利保障", "前提和基础", "宪法保障", 79],
-  ["公民权利保障", "重要条件", "立法保障", 79],
-  ["公民权利保障", "关键环节", "行政保护", 79],
-  ["公民权利保障", "最后防线", "司法保障", 79],
+  ["党", "思想路线的核心", "实事求是", 90],
+  ["党", "三大优良作风", "理论联系实际、密切联系群众、批评与自我批评", 87],
+  ["战胜敌人", "三大法宝", "统一战线、武装斗争、党的建设", 88],
+  ["社会主义国家政治生活", "主题", "正确处理人民内部矛盾", 85],
+  ["初级阶段基本路线", "核心内容", "一个中心、两个基本点", 73],
+  ["建设中国特色社会主义", "总依据", "社会主义初级阶段理论", 73],
+  ["《论十大关系》", "标志意义", "党探索社会主义建设道路的良好开端", 85],
+  ["当今世界", "两大主题", "和平与发展", 73],
+  ["高质量发展", "主线", "深化供给侧结构性改革", 96],
+  ["高质量发展", "必由之路", "加快实现高水平科技自立自强", 95],
+  ["高质量发展", "必然要求", "推进农业现代化", 95],
+  ["高质量发展", "战略基点", "加快构建新发展格局", 95],
+  ["高质量发展", "最终目的", "人民幸福安康", 95],
+  ["全面建设社会主义现代化国家", "首要任务", "高质量发展", 95],
+  ["新发展格局", "基本立足点", "满足国内需求", 96],
+  ["新发展格局", "战略基点", "扩大内需", 96],
+  ["新发展格局", "最本质特征", "实现高水平自立自强", 96],
+  ["新发展格局", "战略方向", "坚持供给侧结构性改革", 96],
+  ["新发展格局", "战略支撑", "科技自立自强", 95],
+  ["新发展格局", "关键", "经济循环畅通无阻", 96],
+  ["全面依法治国", "前提", "科学立法", 97],
+  ["全面依法治国", "关键", "严格执法", 97],
+  ["全面依法治国", "重点", "司法保障（公正司法）", 97],
+  ["全面依法治国", "基础", "全民守法", 97],
+  ["中国特色社会主义法治体系", "前提", "完备的法律规范体系", 98],
+  ["中国特色社会主义法治体系", "重点", "高效的法治实施体系", 98],
+  ["中国特色社会主义法治体系", "重要依托", "有力的法治保障体系", 98],
+  ["中国特色社会主义法治体系", "本质要求", "完善的党内法规体系", 98],
+  ["中国特色社会主义法治体系", "重要保障", "严密的法治监督体系", 98],
+  ["公民权利保障", "前提和基础", "宪法保障", 99],
+  ["公民权利保障", "重要条件", "立法保障", 99],
+  ["公民权利保障", "关键环节", "行政保护", 99],
+  ["公民权利保障", "最后防线", "司法保障", 97],
   ["马克思主义", "科学的世界观和方法论", "辩证唯物主义和历史唯物主义", 2],
 ];
 let HAT_CAT='all', HAT_MASK=false, HAT_Q='';
@@ -1464,7 +1483,54 @@ function itemHTML(it){
   const a=it.a&&it.a.length?`<div class="ia">${it.a.map(([t,k])=>k?`<span class="k">${esc(t)}</span>`:esc(t)).join('')}</div>`:'';
   return `<div class="it${q?'':' stmt'}">${q}${a}</div>`;
 }
+
+/* ---------- 会议大观：会议名 + 年份 作小标题，编号要点缩进，续行再缩一级 ---------- */
+function meetLines(p){
+  const out=[]; let cur=null;
+  (p.lines||[]).forEach(l=>{
+    const t=l.map(s=>s[0]).join('').trim();
+    if(!t) return;
+    const my=t.match(/^(.*?)\s*((?:19|20)\d{2})\s*$/);
+    if(my && my[1].trim().length<=18){
+      cur={name:my[1].trim(), year:my[2], pts:[], extra:[]};
+      out.push(cur); return;
+    }
+    if(!cur){ cur={name:'', year:'', pts:[], extra:[]}; out.push(cur); }
+    if(/^[（(]\d+[）)]/.test(t)) cur.pts.push({t, runs:l});
+    else cur.extra.push({t, runs:l});
+  });
+  return out;
+}
+function meetingHTML(p, cover){
+  const blocks=meetLines(p);
+  const hasHead=blocks.some(b=>b.name);
+  if(!hasHead){
+    /* 没有会议标题的（091 会议口诀）：一行一条口诀 */
+    const lines=(p.lines||[]).map(l=>l.map(s=>s[0]).join('').trim()).filter(Boolean);
+    return `<div class="mn-wrap"><div class="mn-head">会议口诀 · 按时间顺序</div>${lines.map(t=>`<div class="mnline">${esc(t)}</div>`).join('')}</div>`;
+  }
+  const one=(x,cls)=>{
+    const t=x.t;
+    if(!cover) return `<div class="${cls}">${x.runs.map(s=>esc(s[0])).join('')}</div>`;
+    const m=t.match(/^([（(]\d+[）)])?(.*)$/);
+    const num=m&&m[1]?m[1]:'';
+    const body=m&&m[1]?m[2]:t;
+    /* 只挖后半截（最后一个停顿之后的落点），前面留作回忆线索，别把整条都糊住 */
+    let pre=body, blank='';
+    const segs=body.split(/(?<=[，,、；;：:。])/);
+    if(segs.length>1){ blank=segs[segs.length-1]; pre=body.slice(0, body.length-blank.length); }
+    if(!blank || blank.length<2){ const keep=Math.min(6, Math.max(2, Math.floor(body.length/4))); blank=body.slice(-keep); pre=body.slice(0, body.length-blank.length); }
+    if(blank.length>16){ const cut=blank.length-12; pre+=blank.slice(0,cut); blank=blank.slice(cut); }
+    return `<div class="${cls}"><span class="mnum">${esc(num)}</span>${esc(pre)}<span class="cov2" onclick="this.classList.add('on');haptic()">${esc(blank)}</span></div>`;
+  };
+  return blocks.map(b=>{
+    const nameHtml=b.name?`<div class="mth" data-meet="${esc(b.name)}"><b>${esc(b.name)}</b>${b.year?`<i>${b.year}</i>`:''}</div>`:'';
+    return `<div class="mt">${nameHtml}${b.pts.map(x=>one(x,'mtp')).join('')}${b.extra.map(x=>one(x,'mtx')).join('')}</div>`;
+  }).join('');
+}
+
 function bodyHTML(p){
+  if(p.ch==='会议大观') return meetingHTML(p,false);
   const its=itemsOf(p.n);
   let h;
   if(its&&its.length){ h=`<div class="items">${its.map(itemHTML).join('')}</div>`; }
@@ -1478,6 +1544,7 @@ function bodyHTML(p){
   return h;
 }
 function bodyCover(p){
+  if(p.ch==='会议大观') return meetingHTML(p,true);
   const its=itemsOf(p.n);
   let h;
   if(its&&its.length){
@@ -2202,7 +2269,13 @@ function findAnchor(cardEl, name){
     list.forEach(h=>{ const s=anchorScore(h,t); if(s>bs){bs=s;best=h;} });
     return bs>=2?best:null;
   };
-  return pick([...cardEl.querySelectorAll('.meet-h')])
+  const meetEls=[...cardEl.querySelectorAll('[data-meet]')].filter(h=>{
+    const v=normAnchor(h.getAttribute('data-meet'));
+    return v && (v===t || v.includes(t) || t.includes(v));
+  });
+  return meetEls[0]
+      || pick([...cardEl.querySelectorAll('.meet-h')])
+      || pick([...cardEl.querySelectorAll('.mth')])
       || pick([...cardEl.querySelectorAll('.bh,.bp,.bl')]);
 }
 function openCardJump(n, anchor){
@@ -2217,7 +2290,13 @@ function openCardJump(n, anchor){
     if(h){
       document.querySelectorAll('.bh.flash,.bp.flash,.bl.flash').forEach(x=>x.classList.remove('flash'));
       h.classList.add('flash');
-      h.scrollIntoView({behavior:'smooth',block:'center'});
+      /* 顶栏 + 筛选区是固定的，滚动时把它们的高度扣掉，别把命中行顶到看不见的地方 */
+      const sc=document.scrollingElement||document.documentElement;
+      const bar=(document.querySelector('.topbar')||{}).offsetHeight||0;
+      const tool=(document.querySelector('.toolbar, .browse-tools')||{}).offsetHeight||0;
+      const abs=h.getBoundingClientRect().top+(sc.scrollTop||0);
+      const to=Math.max(0, abs-bar-tool-24);
+      try{ sc.scrollTo({top:to,behavior:'smooth'}); }catch(e){ sc.scrollTop=to; }
       setTimeout(()=>h.classList.remove('flash'), 2600);
     }else{
       el.scrollIntoView({behavior:'smooth',block:'center'});
@@ -2654,7 +2733,7 @@ function hatListHTML(list){
     cards+=groups[sub].map(h=>{
       const [sj,hat,ans,pt]=h;
       return `<div class="hat-card ${HAT_MASK?'masked':''}" onclick="tapHat(this)">
-        <div class="hc-top"><span class="hat-badge">${esc(hat.split('（')[0])}</span><span class="hat-src" onclick="event.stopPropagation();openCardJump(${pt})">关联第 ${pad3(pt)} 条 ›</span></div>
+        <div class="hc-top"><span class="hat-badge">${esc(hat.split('（')[0])}</span>${pt?`<span class="hat-src" onclick="event.stopPropagation();openCardJump(${pt})">关联第 ${pad3(pt)} 条 ›</span>`:`<span class="hat-src none">原文未定位</span>`}</div>
         <div class="hat-q">${esc(sj)}的${esc(hat)}是什么？</div>
         <div class="hat-a"><span class="lab">答</span><span class="a-txt">${esc(ans)}</span></div>
       </div>`;
@@ -3210,8 +3289,15 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.10.1';
+const VER='2.11';
 const CHANGELOG=[
+ {v:'2.11',d:'2026-11-13',t:'会议大观重排 + 时间轴/帽子题精准跳转',items:[
+   '会议大观上/中/下：会议名与年份提成小标题，编号要点缩进成组，续行再缩一级，不再是平铺一片',
+   '会议口诀单独成块，一行一句，按时间顺序排',
+   '速览改成问答条目后，时间轴跳转找不到原来的标题节点；现在按“会议名”定位并高亮，滚动时扣掉固定顶栏和筛选栏的高度，命中行不会再被盖住',
+   '帽子题的“关联第 N 条”是我上版凭记忆填的，大多指错地方；现在按原文逐条反查重建：88 条里有 80 条能在目标考点原文里找到这条答案，剩下的是同义改写但考点对得上',
+   '定位不到原文的那一条（马克思主义理论品质/与时俱进）本就不在这本书里，已删掉，不再出现凭空链接',
+   '全面依法治国“重点”的答案按书上写法改成“司法保障（公正司法）”']},
  {v:'2.10.1',d:'2026-11-13',t:'补上 2.6–2.10 的版本记录，版本号不再跳空',items:[
    '把 2.6 到 2.10 每一版做了什么写进版本记录，之前只记到 2.5，看着像凭空跳到 2.10',
    '版本号规则：前两段是大版本、第三段是补丁。2.10 就是 2 版第 10 次迭代，比 2.9.1 新，App 里的更新提示按段比较，不会认错',
