@@ -3035,17 +3035,33 @@ async function aiStartNet(){
     for(let i=0;i<ordered.length;i++){
       const pt=pool[i%pool.length];
       aiSetStatus('<div class="ai-status"><span class="spin"></span>「'+esc(cfg.name)+'」正在出第 '+(i+1)+' / '+ordered.length+' 题（免费接口一次一题，慢一点）……</div>');
-      const r=await aiNetOnce([pt],1,ordered[i]);
+      let r=await aiNetOnce([pt],1,ordered[i],{slot:i+1,total:ordered.length,avoid:qs.map(q=>q.stem)});
+      if(r.qs.length&&qs.some(q=>sameStem(q,r.qs[0]))) r={qs:[],err:'模型又出了重复的题'};
+      if(!r.qs.length){
+        r=await aiNetOnce([pt],1,ordered[i],{slot:i+1,total:ordered.length,avoid:qs.map(q=>q.stem)});
+        if(r.qs.length&&qs.some(q=>sameStem(q,r.qs[0]))) r={qs:[],err:'两次都是重复题'};
+      }
       if(r.qs.length){ qs.push(r.qs[0]); engine=r.engine||engine; fails=0; }
       else { fails++; if(fails>=3){ aiSetStatus(''); aiSetStatus('<div class="ai-status bad">免费接口连续 3 次没出成：'+esc(r.err||'被限流或超时')+'<div class="ai-status-act"><button class="ghost sm" onclick="openAISettings()">换引擎 / 填密钥</button><button class="ghost sm" onclick="aiStart()">再试一次</button></div></div>'); if(qs.length) break; return; } }
     }
   }else{
     /* 自带 key 的引擎：多点并行，多点一起要 */
-    const pick=shuffle(pts).slice(0,Math.min(pts.length,Math.max(1,Math.min(8,Math.ceil(need/2)))));
-    const perPoint=Math.max(1,Math.ceil(need/pick.length));
+    const pick=shuffle(pts).slice(0,Math.min(pts.length,Math.max(1,Math.min(need,Math.ceil(need/2)))));
     aiSetStatus('<div class="ai-status"><span class="spin"></span>正在用「'+esc(cfg.name)+'」出 '+need+' 题（'+pick.length+' 个考点）……</div>');
-    const rs=await Promise.all(pick.map(n=>aiNetOnce([n],perPoint,AIS.type)));
-    rs.forEach(r=>{ if(!r.qs.length) return; engine=r.engine||engine; r.qs.forEach(q=>{ if(!qs.some(x=>x.stem===q.stem)) qs.push(q); }); });
+    let slot=0, round=0;
+    while(qs.length<need && round<3){
+      round++;
+      for(const n of pick){
+        if(qs.length>=need) break;
+        const want=Math.min(3,need-qs.length);
+        slot++;
+        aiSetStatus('<div class="ai-status"><span class="spin"></span>「'+esc(cfg.name)+'」已出 '+qs.length+' / '+need+' 题，正在出第 '+(qs.length+1)+' 题……</div>');
+        const r=await aiNetOnce([n],want,AIS.type,{slot:slot,total:need,avoid:qs.map(q=>q.stem)});
+        if(!r.qs.length) continue;
+        engine=r.engine||engine;
+        r.qs.forEach(q=>{ if(qs.length<need && !qs.some(x=>sameStem(x,q))) qs.push(q); });
+      }
+    }
   }
 
   aiSetStatus('');
@@ -3055,7 +3071,8 @@ async function aiStartNet(){
     return;
   }
   AIS.lastEngine=engine;
-  if(qs.length<need) mtoast('只出了 '+qs.length+' 题（要 '+need+' 题），可换引擎再试');
+  qs=qs.filter((q,i,a)=>i===a.findIndex(x=>sameStem(x,q)));
+  if(qs.length<need) mtoast('只出了 '+qs.length+' 道不重复的题（要 '+need+' 道），可换引擎再试');
   aiSetStatus('<div class="ai-status ok">已出 '+qs.length+' 题 · 引擎「'+esc(engine)+'」· '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})+'</div>');
   aiEnter(qs.slice(0,need));
 }
@@ -3094,7 +3111,9 @@ function aiRandomPoint(){
   const p=PTS[Math.floor(Math.random()*PTS.length)];
   aiForPoint(p.n);
 }
-function buildAIPrompt(p,per,kind){
+const AI_ANGLES=['易混概念辨析（把相邻的两个概念的界定/主体对调，让你分辨）','相似会议、著作、时间、主体区分（偷换主体或时间）','绝对化表述陷阱（把“之一/主要”改成“唯一/根本”）','条件偷换（把前提、范围、阶段换掉）','材料型：给一句原书表述或现象，问它体现什么'];
+function buildAIPrompt(p,per,kind,opt){
+  opt=opt||{};
   const n=Math.max(1,Math.min(60,per||1));
   const sp=aiSplit(n,kind);
   const what=kind==='single'?n+' 道单选题（只要 single）'
@@ -3103,6 +3122,8 @@ function buildAIPrompt(p,per,kind){
   return [
 '你现在是考研政治命题、阅卷双师老师，完全按照历年考研政治真题的命题风格、难度、挖坑方式、设问方式出题。',
 '【本次任务】围绕下面这一个政治知识点出：'+what+'。题目数量必须正好是 '+n+' 道，不多不少。',
+n>1?'【互不重复】这 '+n+' 道题的题干、设问角度、挖坑方式必须各不相同：不要只把上一题的选项换个顺序或换几个字重复出。':'',
+opt.slot?('【这是本组第 '+opt.slot+' / '+opt.total+' 题】这一道指定考这个角度：'+AI_ANGLES[(opt.slot-1)%AI_ANGLES.length]+'。'):'',
 '【学科自动匹配】先判断这个知识点属于哪一学科（马原／毛中特／史纲／思修法基／当代），解析里的考点定位必须写清“学科＋章节模块”。',
 '【出题硬性规则】',
 '1. 题型配比贴真题：单选与多选按 3:2 的真题手感来（基础 1＋易混辨析 1＋陷阱挖坑 1 轮换）；不要出分析题。',
@@ -3120,15 +3141,19 @@ function buildAIPrompt(p,per,kind){
 '【输出格式】只输出严格 JSON，不要 markdown 代码块、不要任何多余解释：',
 '{"questions":[{"type":"single","stem":"题干","opts":["A项正文","B项正文","C项正文","D项正文"],"ans":["A"],"exp":"【答案】A\\n【考点定位】…\\n【详细解析】…\\n【错项分析】B项…；C项…；D项…\\n【避坑技巧】…"},',
 '{"type":"multi","stem":"题干","opts":["…","…","…","…"],"ans":["A","C"],"exp":"同上五项"}]}',
+opt.avoid&&opt.avoid.length?('【已经出过的题，绝对不许重复或改写复用】'+opt.avoid.slice(-6).map((t,i)=>(i+1)+'. '+t).join(' / ')):'',
 '【本考点原文】',
 '第 '+p.n+' 条 · '+p.ch+' · '+p.title,
 pointPlain(p)
   ].join('\n');
 }
-function buildAIPromptFree(p,kind){
+function buildAIPromptFree(p,kind,opt){
+  opt=opt||{};
   const t=kind==='multi'?'多选（4 选项，2–3 个正确）':'单选（4 选项，1 个正确）';
   const plain=pointPlain(p).slice(0,180);
   return ['你是考研政治命题阅卷老师，只出 1 道'+t+'题，贴真题难度。',
+  opt.slot?('这一道指定角度：'+AI_ANGLES[(opt.slot-1)%AI_ANGLES.length]+'。'):'',
+  opt.avoid&&opt.avoid.length?('不要和这些已出的题干重复：'+opt.avoid.slice(-3).join(' / ')):'',
   '考点：第'+p.n+'条 '+p.ch+'·'+p.title,
   '原书要点：'+plain,
   '要求：考易混辨析或偷换主体/条件，4 个选项同层级，不用“以上都对”，题干≤60字，选项≤25字。',
@@ -3136,6 +3161,8 @@ function buildAIPromptFree(p,kind){
   '只输出 JSON：{"questions":[{"type":"'+(kind==='multi'?'multi':'single')+'","stem":"…","opts":["…","…","…","…"],"ans":["A"],"exp":"【答案】…\n【考点定位】…\n【详细解析】…\n【错项分析】…\n【避坑技巧】…"}]}'
   ].join('\n');
 }
+function normStem(t){ return String(t||'').replace(/[，。？?、；;：:“”\"'（）()\s]/g,'').slice(0,18); }
+function sameStem(a,b){ return normStem(a.stem)===normStem(b.stem); }
 function extractJSON(text){
   let t=text.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
   const s=t.indexOf('{'), e=t.lastIndexOf('}');
@@ -3190,7 +3217,7 @@ async function callAI(prompt,cfg,ms){
   return content;
 }
 /* 一次出题：主引擎不通就退到免密钥的 Pollinations；都不通就如实报错，不本地拼题 */
-async function aiNetOnce(pts,per,kind){
+async function aiNetOnce(pts,per,kind,opt){
   const tried=[];
   let cfg=getAICfg();
   const engines=[cfg];
@@ -3199,7 +3226,7 @@ async function aiNetOnce(pts,per,kind){
     if(!aiEngineReady(e)) continue;
     try{
       const pp=PTS.find(p=>p.n===pts[0]);
-      const prompt=(e.k==='pollinations')?buildAIPromptFree(pp,kind):buildAIPrompt(pp,per,kind);
+      const prompt=(e.k==='pollinations')?buildAIPromptFree(pp,kind,opt):buildAIPrompt(pp,per,kind,opt);
       const raw=await callAI(prompt,e,(e.k==='pollinations')?22000:15000);
       const qs=aiParseNet(raw,pts[0]);
       if(qs.length) return {qs:qs,engine:e.name};
@@ -3987,8 +4014,13 @@ normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.27';
+const VER='2.28';
 const CHANGELOG=[
+ {v:'2.28',d:'2026-11-13',t:'修 AI 出题五道全一样：加去重和轮换角度',items:[
+   '原因：每一题的提示词一模一样，模型自然把同一道题反复给你；免费引擎那条路径还压根没查重',
+   '每道题现在都带“本组第 i / N 题”，强制指定不同角度：易混辨析、会议/著作/时间偷换、绝对化陷阱、条件偷换、材料型，轮着来',
+   '把已经出过的题干回填进下一次提示词，明确写“不许重复或改写复用”',
+   '出完再按题干（前 18 字去标点）判重，免费引擎撞重就当场重出一次，还是重就丢掉并如实报“只出了 X 道不重复的题”']},
  {v:'2.27',d:'2026-11-13',t:'AI 出题那段说明换成实时状态',items:[
    '删掉面板里那段“题目由大模型按真题风格现出…”的说明文字，原位改成「出题状态」',
    '出题时实时显示进度：正在用哪个引擎、出到第几题、共多少题；出完显示“已出 X 题 · 引擎 · 时间”',
