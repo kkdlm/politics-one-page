@@ -4058,15 +4058,17 @@ window.addEventListener('scroll',()=>{
     setTimeout(()=>{ if(el.parentNode) el.remove(); },560); };
   const onAny=e=>{ if(e.cancelable) e.preventDefault(); e.stopPropagation(); hide(); };
   EV.forEach(ev=>document.addEventListener(ev,onAny,true));
-  setTimeout(hide,2200);                       /* 主路径：停满 2.2 秒再淡出 */
-  setTimeout(()=>{ if(!gone){ gone=true; off(); if(el.parentNode) el.remove(); } },3000); /* 兜底：任何异常也不卡在启动页 */
+  setTimeout(hide,3000);                       /* 主路径：停满 3 秒再淡出 */
+  setTimeout(()=>{ if(!gone){ gone=true; off(); if(el.parentNode) el.remove(); } },3800); /* 兜底：任何异常也不卡在启动页 */
 })();
 normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.29.3';
+const VER='2.29.4';
 const CHANGELOG=[
+ {v:'2.29.4',d:'2026-11-14',t:'启动屏自动停留延长到 3 秒',items:[
+   '自动关闭 2.2 秒 → 3 秒；点击仍是立即进入，硬兜底 3.8 秒']},
  {v:'2.29.3',d:'2026-11-14',t:'启动屏改成「点一下就进、正常情况不动手」',items:[
    '不做「点击跳过」提示文案，正常停满 2.2 秒自动淡出',
    '兜底：任意触摸/点击/按键/滚轮立即可进，且不穿透到底层界面',
