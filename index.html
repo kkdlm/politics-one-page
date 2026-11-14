@@ -4047,20 +4047,32 @@ window.addEventListener('scroll',()=>{
 (function setupSplash(){
   const el=document.getElementById('splash');
   if(!el) return;
-  if(sessionStorage.getItem('splashShown')){ el.remove(); return; }
+  if(sessionStorage.getItem('splashShown')==='1'){ el.remove(); return; }
   sessionStorage.setItem('splashShown','1');
   let gone=false;
-  const hide=()=>{ if(gone) return; gone=true;
-    el.classList.add('hide'); setTimeout(()=>el.remove(),480); };
-  el.addEventListener('click', hide);
-  setTimeout(hide,2200);
+  const EV=['touchstart','pointerdown','mousedown','click','keydown','wheel'];
+  const off=()=>EV.forEach(ev=>document.removeEventListener(ev,onAny,true));
+  const hide=()=>{ if(gone) return; gone=true; off();
+    el.classList.add('hide');
+    el.addEventListener('transitionend',e=>{ if(e.propertyName==='opacity') el.remove(); });
+    setTimeout(()=>{ if(el.parentNode) el.remove(); },560); };
+  const onAny=e=>{ if(e.cancelable) e.preventDefault(); e.stopPropagation(); hide(); };
+  EV.forEach(ev=>document.addEventListener(ev,onAny,true));
+  setTimeout(hide,2200);                       /* 主路径：停满 2.2 秒再淡出 */
+  setTimeout(()=>{ if(!gone){ gone=true; off(); if(el.parentNode) el.remove(); } },3000); /* 兜底：任何异常也不卡在启动页 */
 })();
 normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.29.2';
+const VER='2.29.3';
 const CHANGELOG=[
+ {v:'2.29.3',d:'2026-11-14',t:'启动屏改成「点一下就进、正常情况不动手」',items:[
+   '不做「点击跳过」提示文案，正常停满 2.2 秒自动淡出',
+   '兜底：任意触摸/点击/按键/滚轮立即可进，且不穿透到底层界面',
+   '3 秒硬兜底，异常也不卡启动页']},
+ {v:'2.29.2',d:'2026-11-14',t:'离线缓存 + 系统启动图',items:[
+   '加 sw.js 离线缓存与 apple-touch-startup-image，主屏打开不再长时间白屏']},
  {v:'2.29.1',d:'2026-11-14',t:'启动屏多停 0.9 秒',items:[
    '启动屏停留从 1.3 秒拉到 2.2 秒，金线圈和「政」印落纸的动作看得完整；点一下立即跳过']},
  {v:'2.29',d:'2026-11-14',t:'视觉改版：深朱暗金「政」字印，九板块纲领页',items:[
