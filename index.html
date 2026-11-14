@@ -884,7 +884,14 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 .clog-h .v{font-size:12.5px;font-weight:700;color:var(--red);letter-spacing:.02em}
 .clog-h .d{font-size:10.5px;color:var(--ink-3)}
 .clog-h .now{background:var(--red);color:#fff;border-radius:4px;padding:1px 5px;font-size:9.5px}
+.clog-h .kind{background:var(--paper-2);color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:9.5px;letter-spacing:.04em}
+.clog li .tg{display:inline-block;margin-right:5px;padding:0 4px;border-radius:3px;font-size:9.5px;color:var(--ink-3);background:var(--paper-2);border:1px solid var(--line);vertical-align:1px}
 .clog-t{font-size:12.5px;font-weight:600;margin:3px 0 2px}
+.patch{margin:9px 0 0;padding:8px 10px;border-left:2px solid var(--red-soft);background:var(--paper-2);border-radius:0 8px 8px 0}
+.patch-h{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.patch-h span{font-size:11px;font-weight:700;color:var(--red)}
+.patch-h time{font-size:10px;color:var(--ink-3)}
+.patch ul{margin:0}
 .clog li{font-size:11.5px;line-height:1.8;color:var(--ink-2)}
 
 
@@ -1611,16 +1618,16 @@ function renderList(){
 }
 function lineHTML(l){
   return l.map(([t,f])=>{
-    if(f==='k') return `<span class="k">${esc(t)}</span>`;
-    if(f==='g') return `<span class="g">${esc(t)}</span>`;
-    return esc(t);
+    if(f==='k') return `<span class="k">${hl(t)}</span>`;
+    if(f==='g') return `<span class="g">${hl(t)}</span>`;
+    return hl(t);
   }).join('');
 }
 function hl(text){
   const q=(Q||'').trim();
-  if(!q) return esc(text);
-  const parts=text.split(q);
-  return parts.map(esc).join('<mark class="hl">'+esc(q)+'</mark>');
+  if(!q || !text) return esc(text);
+  if(text.indexOf(q)<0) return esc(text);
+  return text.split(q).map(esc).join('<mark class="hl">'+esc(q)+'</mark>');
 }
 function isFragLine(t){
   if(/[，,、]$/.test(t)) return true;
@@ -1665,10 +1672,10 @@ function cardBlocks(p){
 }
 /* 速览正文：一条 = 问题 + 答案，全篇同一种排版 */
 function itemHTML(it){
-  if(it.label) return `<div class="ilab">${it.a.map(x=>esc(x[0])).join('')}</div>`;
-  if(it.mn) return `<div class="it mn"><span class="mnk">口诀</span><span class="mnt">${it.a.map(x=>esc(x[0])).join('')}</span></div>`;
-  const q=it.q&&it.q.length?`<div class="iq">${it.q.map(([t,k])=>k?`<span class="qk">${esc(t)}</span>`:esc(t)).join('')}</div>`:'';
-  const a=it.a&&it.a.length?`<div class="ia">${it.a.map(([t,k])=>k?`<span class="k">${esc(t)}</span>`:esc(t)).join('')}</div>`:'';
+  if(it.label) return `<div class="ilab">${it.a.map(x=>hl(x[0])).join('')}</div>`;
+  if(it.mn) return `<div class="it mn"><span class="mnk">口诀</span><span class="mnt">${it.a.map(x=>hl(x[0])).join('')}</span></div>`;
+  const q=it.q&&it.q.length?`<div class="iq">${it.q.map(([t,k])=>k?`<span class="qk">${hl(t)}</span>`:hl(t)).join('')}</div>`:'';
+  const a=it.a&&it.a.length?`<div class="ia">${it.a.map(([t,k])=>k?`<span class="k">${hl(t)}</span>`:hl(t)).join('')}</div>`:'';
   return `<div class="it${q?'':' stmt'}">${q}${a}</div>`;
 }
 
@@ -4066,9 +4073,17 @@ migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
 const VER='2.29.4';
+const PATCH='1';
 const CHANGELOG=[
- {v:'2.29.4',d:'2026-11-14',t:'启动屏自动停留延长到 3 秒',items:[
-   '自动关闭 2.2 秒 → 3 秒；点击仍是立即进入，硬兜底 3.8 秒']},
+ {v:'2.29.4',d:'2026-11-14',kind:'patch',t:'启动屏自动停留延长到 3 秒',items:[
+   '自动关闭 2.2 秒 → 3 秒；点击仍是立即进入，硬兜底 3.8 秒'],patches:[
+   {p:'1',d:'2026-11-15',items:[
+     ['同步','更新机制与法制史一图流对齐：版本号 + 补丁号双层判断，同一版本内换补丁也会提示更新'],
+     ['优化','更新提示改成先问一句「现在更新吗？」并给「稍后」，不再直接弹「立即更新」；点过稍后会记住，下次不再打扰'],
+     ['优化','已是最新时不再弹「更新好像没生效」；只有真的点过更新还回到旧版，才提示清缓存的办法'],
+     ['优化','点更新时顺手清掉 Service Worker 与旧缓存，避免旧页面被缓存反复顶回来'],
+     ['优化','搜索关键词原来只在标题和摘要标黄，现在展开卡片后的正文也标黄；清空搜索自动恢复'],
+     ['规范','版本记录里补丁单独成块挂在所属版本下，一眼能看出这版之后修了几次']]}]},
  {v:'2.29.3',d:'2026-11-14',t:'启动屏改成「点一下就进、正常情况不动手」',items:[
    '不做「点击跳过」提示文案，正常停满 2.2 秒自动淡出',
    '兜底：任意触摸/点击/按键/滚轮立即可进，且不穿透到底层界面',
@@ -4296,16 +4311,21 @@ const CHANGELOG=[
  {v:'1.0',d:'历史',t:'初版',items:[
    '把《2027 这就是一页纸·知识点手册》100 个考点整理成结构化数据']}
 ];
+const KIND={minor:'次版本',patch:'修订',major:'大版本'};
 function openChangelog(){
   openSheet('版本记录',`
     <div class="sheet-sec">
       ${CHANGELOG.map((c,i)=>`<div class="clog">
-        <div class="clog-h"><span class="v">v${c.v}</span><span class="d">${c.d}</span>${i===0?'<span class="now">当前</span>':''}</div>
+        <div class="clog-h"><span class="v">v${c.v}</span><span class="d">${c.d}</span>${KIND[c.kind]?`<span class="kind">${KIND[c.kind]}</span>`:''}${i===0?'<span class="now">当前</span>':''}</div>
         <div class="clog-t">${esc(c.t)}</div>
-        <ul>${c.items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+        <ul>${(c.items||[]).map(x=>Array.isArray(x)?`<li><span class="tg">${esc(x[0])}</span>${esc(x[1])}</li>`:`<li>${esc(x)}</li>`).join('')}</ul>
+        ${(c.patches||[]).map(pt=>`<div class="patch">
+          <div class="patch-h"><span>补丁 ${esc(pt.p)}</span><time>${esc(pt.d)}</time></div>
+          <ul>${(pt.items||[]).map(x=>`<li><span class="tg">${esc(x[0])}</span>${esc(x[1])}</li>`).join('')}</ul>
+        </div>`).join('')}
       </div>`).join('')}
     </div>
-    <div class="fine">当前版本 v${VER} · 本程序单文件运行，更新即覆盖式升级，进度数据仍在本机。</div>
+    <div class="fine">当前版本 v${VER}${(parseInt(PATCH,10)||0)>0?' · 补丁 '+(parseInt(PATCH,10)||0):''} · 本程序单文件运行，更新即覆盖式升级，进度数据仍在本机。</div>
   `);
 }
 
@@ -4315,20 +4335,25 @@ function cmpVer(a,b){
   for(let i=0;i<3;i++){ const A=x[i]||0, B=y[i]||0; if(A!==B) return A>B?1:-1; }
   return 0;
 }
-function verBar(msg,btnTxt,onAct,sticky){
+function verBar(msg,btnTxt,onAct,sticky,verTag,altTxt){
   let el=document.getElementById('verbar');
   if(!el){ el=document.createElement('div'); el.id='verbar'; el.className='verbar'; document.body.appendChild(el); }
   el.innerHTML='<span class="vb-txt"></span><button class="vb-act"></button><button class="vb-x">×</button>';
   el.querySelector('.vb-txt').textContent=msg;
+  el.dataset.ver=verTag||'';
   const b=el.querySelector('.vb-act');
   b.textContent=btnTxt;
   b.onclick=onAct;
-  el.querySelector('.vb-x').onclick=()=>{ el.classList.remove('show'); clearTimeout(el._t); };
+  el.querySelector('.vb-x').textContent = altTxt||'×';
+  el.querySelector('.vb-x').onclick=()=>{ el.classList.remove('show'); clearTimeout(el._t); if(el.dataset.ver){ window.__dismissedVer=el.dataset.ver; try{ localStorage.setItem(KEY+':dv',el.dataset.ver); }catch(e){} } };
   el.classList.add('show');
   clearTimeout(el._t);
   if(!sticky) el._t=setTimeout(()=>el.classList.remove('show'),8000);
 }
-function refreshApp(){
+async function refreshApp(){
+  try{ localStorage.setItem(KEY+':upTry',String((parseInt(localStorage.getItem(KEY+':upTry')||'0',10)||0)+1)); }catch(e){}
+  try{ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(x=>x.unregister())); }catch(e){}
+  try{ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){}
   try{ location.replace(location.pathname+'?v='+Date.now()); }catch(e){ location.reload(); }
 }
 async function checkRemote(manual){
@@ -4336,27 +4361,64 @@ async function checkRemote(manual){
     const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error('no');
     const j=await r.json();
-    if(cmpVer(j.version,VER)>0){
-      verBar('有新版本 v'+j.version,'立即更新',()=>refreshApp(),true);
-    }else if(manual){ mtoast('已是最新版本 v'+VER); }
+    const rp=parseInt(j.patch||'0',10)||0, lp=parseInt(PATCH,10)||0;
+    const c=cmpVer(j.version,VER);
+    if(c>0 || (c===0 && rp>lp)){
+      const tag=j.version+'#'+rp;
+      let tries=0;
+      try{ tries=parseInt(localStorage.getItem(KEY+':upTry')||'0',10)||0; }catch(e){}
+      if(tries>=2){
+        if(!manual && window.____helpShown) return;
+        window.____helpShown=1;
+        verBar('更新好像没生效（还在 v'+VER+'）','看解决办法',()=>{ window.____helpShown=0; showCacheHelp(); },true);
+        return;
+      }
+      if(!manual && window.__dismissedVer===tag) return;
+      const label=c>0?('新版本 v'+j.version+' 已发布'):('v'+VER+' 有补丁 '+rp);
+      verBar(label+'，现在更新吗？','更新',()=>refreshApp(),true,tag,'稍后');
+    }else{
+      try{ localStorage.setItem(KEY+':upTry','0'); }catch(e){}
+      if(manual){ mtoast('已是最新版本 v'+VER+(lp>0?'（补丁 '+lp+'）':'')); }
+    }
   }catch(e){
     if(manual) mtoast('检查不到更新信息（离线或直链打开时正常）');
   }
 }
+function showCacheHelp(){
+  openSheet('更新卡在旧版本怎么办', `<div class="kb-body">
+   <p><b>原因</b>：旧版页面被浏览器缓存住了，点「更新」后重新加载的还是旧页面，于是提示反复出现。清一次缓存即可。</p>
+   <p><b>安卓 Chrome / 主屏幕应用</b></p>
+   <p>1. 长按主屏幕上的图标 → 「应用信息」→「存储和缓存」→ <b>清除缓存 / 清除数据</b>；<br>
+      2. 或浏览器地址栏左侧「🔒」→「站点设置」→「清除并重置」；<br>
+      3. 重新打开 <b>kkdlm.github.io/politics-one-page</b>，版本记录里应显示比当前更新的版本或补丁号。</p>
+   <p><b>iOS Safari</b>：设置 → Safari → 高级 → 网站数据 → 找到本站删除，再重开。</p>
+   <p>清一次之后就正常了：新版会按版本号与补丁号自动判断，不会再卡在旧版。</p>
+   </div>`);
+}
 function checkNow(){ checkRemote(true); }
 function bootVer(){
+  try{ window.__dismissedVer=localStorage.getItem(KEY+':dv')||null; }catch(e){}
+  const stamp=VER+'#'+(parseInt(PATCH,10)||0);
   let last=null;
-  try{ last=localStorage.getItem(KEY+':ver'); localStorage.setItem(KEY+':ver',VER); }catch(e){}
-  if(last && last!==VER){
-    verBar('已更新至 v'+VER,'查看版本',()=>{ openChangelog(); document.getElementById('verbar').classList.remove('show'); },false);
+  try{ last=localStorage.getItem(KEY+':ver'); localStorage.setItem(KEY+':ver',stamp); }catch(e){}
+  try{ if(last && last!==stamp) localStorage.setItem(KEY+':upTry','0'); }catch(e){}
+  if(last && last!==stamp){
+    const pv=parseInt(PATCH,10)||0;
+    verBar('已更新至 v'+VER+(pv>0?'（补丁 '+pv+'）':''),'查看版本',()=>{ openChangelog(); document.getElementById('verbar').classList.remove('show'); },false);
   }
   window.__chkAt=Date.now();
   setTimeout(()=>checkRemote(false),1500);
-  document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible' && Date.now()-window.__chkAt>600000){
-      window.__chkAt=Date.now(); checkRemote(false);
-    }
-  });
+  function onForeground(){
+    if(document.visibilityState!=='visible') return;
+    if(Date.now()-(window.__chkAt||0)<30000) return;
+    window.__chkAt=Date.now();
+    checkRemote(false);
+    try{ if(navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(r=>r&&r.update&&r.update()).catch(()=>{}); }catch(e){}
+  }
+  document.addEventListener('visibilitychange',onForeground);
+  window.addEventListener('focus',onForeground);
+  window.addEventListener('pageshow',e=>{ if(e.persisted) onForeground(); });
+  setInterval(onForeground,600000);
 }
 setTimeout(bootVer,600);
 </script>
@@ -4364,7 +4426,28 @@ setTimeout(bootVer,600);
 <script>
 /* 离线缓存：第二次打开直接用本地缓存渲染，避免每次重新下载 4MB 主文件 */
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+  window.addEventListener('load',async()=>{
+    try{
+      const reg=await navigator.serviceWorker.register('sw.js',{updateViaCache:'none'});
+      reg.update().catch(()=>{});
+      reg.addEventListener('updatefound',()=>{
+        const w=reg.installing;
+        if(!w) return;
+        w.addEventListener('statechange',()=>{
+          if(w.state==='installed' && navigator.serviceWorker.controller){
+            window.__chkAt=0;
+            checkRemote(false).then(()=>setTimeout(()=>{
+              const vb=document.getElementById('verbar');
+              if(vb&&vb.classList.contains('show')) return;
+              if(window.__dismissedVer) return;
+              verBar('有新内容可更新，现在更新吗？','更新',()=>refreshApp(),false,'','稍后');
+            },300));
+          }
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{ window.__swChanged=true; });
+    }catch(e){}
+  });
 }
 </script>
 </body>
