@@ -7,7 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#F4EEE0" id="metaTheme">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%238E2723'/%3E%3Crect x='5' y='5' width='54' height='54' rx='4' fill='none' stroke='%23E7D6AE' stroke-width='1.6' opacity='.55'/%3E%3Ctext x='32' y='45' font-family='Songti SC,serif' font-size='38' fill='%23FCF4E2' text-anchor='middle'%3E%E6%94%BF%3C/text%3E%3C/svg%3E">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%238E2723'/%3E%3Crect x='5' y='5' width='54' height='54' rx='4' fill='none' stroke='%23E7D6AE' stroke-width='1.6' opacity='.55'/%3E%3Ctext x='32' y='45' font-family='Songti SC,serif' font-size='38' fill='%23FCF4E2' text-anchor='middle'%3E%E6%94%BF%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>政治一页纸</title>
 <style>
 :root{
@@ -4035,25 +4037,6 @@ window.addEventListener('scroll',()=>{
   const t=document.getElementById('totop');
   if(t) t.classList.toggle('show', window.scrollY>420);
 },{passive:true});
-/* 清单（blob，便于“添加到主屏”全屏运行） */
-(function setupManifest(){
-  const iconSvg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="34" fill="#A5342E"/><text x="96" y="132" font-size="108" text-anchor="middle" fill="#F6E9CE" font-family="serif">页</text></svg>`;
-  const manifest={
-    name:'政治一页纸',short_name:'政治一页纸',
-    display:'standalone',orientation:'portrait',
-    background_color:'#F2ECDD',theme_color:'#A5342E',
-    icons:[{src:'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(iconSvg))),
-      sizes:'any',type:'image/svg+xml',purpose:'any maskable'}]
-  };
-  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
-  const link=document.createElement('link');
-  link.rel='manifest'; link.href=URL.createObjectURL(blob);
-  document.head.appendChild(link);
-  // iOS apple touch icon
-  const at=document.createElement('link');
-  at.rel='apple-touch-icon'; at.href=manifest.icons[0].src;
-  document.head.appendChild(at);
-})();
 (function setupSplash(){
   const el=document.getElementById('splash');
   if(!el) return;
