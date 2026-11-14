@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: fetch html
-        run: curl -fsSL --retry 3 --retry-delay 2 -o index.html "https://aka.doubaocdn.com/s/UeowF7zuVb"
+        run: curl -fsSL --retry 3 --retry-delay 2 -o index.html "https://aka.doubaocdn.com/s/2yPTh9FCxe"
       - name: commit
         run: |
           git config user.name "github-actions[bot]"
@@ -25,7 +25,7 @@ jobs:
             echo "index.html 已是最新，跳过提交"
             exit 0
           fi
-          git commit -m "更新 index.html [skip ci]"
+          git commit -m "更新 index.html v2.29.1 [skip ci]"
           for i in 1 2 3; do
             if git push; then echo "pushed (try $i)"; exit 0; fi
             git pull --rebase --autostash origin main || true
