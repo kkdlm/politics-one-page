@@ -5,17 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#F2ECDD" id="metaTheme">
+<meta name="theme-color" content="#F4EEE0" id="metaTheme">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%238E2723'/%3E%3Crect x='5' y='5' width='54' height='54' rx='4' fill='none' stroke='%23E7D6AE' stroke-width='1.6' opacity='.55'/%3E%3Ctext x='32' y='45' font-family='Songti SC,serif' font-size='38' fill='%23FCF4E2' text-anchor='middle'%3E%E6%94%BF%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%238E2723'/%3E%3Crect x='5' y='5' width='54' height='54' rx='4' fill='none' stroke='%23E7D6AE' stroke-width='1.6' opacity='.55'/%3E%3Ctext x='32' y='45' font-family='Songti SC,serif' font-size='38' fill='%23FCF4E2' text-anchor='middle'%3E%E6%94%BF%3C/text%3E%3C/svg%3E">
 <title>政治一页纸</title>
 <style>
 :root{
-  --paper:#F2ECDD; --paper-2:#FBF6E9; --card:#FDFAF2;
-  --ink:#1B1815; --ink-2:#57514A; --ink-3:#8D8575;
-  --line:#E2D8C3; --line-2:#EDE5D4;
-  --red:#A5342E; --red-soft:#F1DFD8;
+  --paper:#F4EEE0; --paper-2:#FBF6EA; --card:#FDFAF1;
+  --ink:#1D1813; --ink-2:#544C42; --ink-3:#8A8073;
+  --line:#E0D6C2; --line-2:#EBE1CD;
+  --red:#8E2723; --red-2:#6F1D1A; --red-soft:#F3DFD8;
+  --gold:#B08A45; --gold-soft:#E7D6AE;
   --track:#EFE7D6; --cov:#EFE6D2; --cov-line:#E4D7BE; --cov-cue:#A99E86;
-  --nav:rgba(248,243,231,.92); --topfade:rgba(242,236,221,.96);
-  --shadow:0 1px 2px rgba(80,62,30,.05),0 10px 26px -18px rgba(80,62,30,.35);
+  --nav:rgba(249,244,232,.93); --topfade:rgba(244,238,224,.96);
+  --shadow:0 1px 2px rgba(80,62,30,.06),0 10px 26px -18px rgba(80,62,30,.36);
   --r:14px; --fs:1;
   --mapbg:#DCE5DF; --land:#F8F1DD; --land2:#EFE6CC; --landline:#C6BCA2; --sealab:#87A39C; --riv2:#7EA6B2;
   --pv1:#D7C09B; --pv2:#E6D5B1; --pv3:#D7DEC0; --pv4:#CDD9C2; --pv-line:#B4A98C;
@@ -24,12 +27,13 @@
   --sans:"PingFang SC","HarmonyOS Sans SC","Noto Sans SC","Source Han Sans SC",system-ui,-apple-system,sans-serif;
 }
 html[data-theme="night"]{
-  --paper:#14110D; --paper-2:#1B1712; --card:#211C16;
-  --ink:#EDE7D8; --ink-2:#B9B0A0; --ink-3:#8C8475;
-  --line:#322B22; --line-2:#29241C;
-  --red:#C9564A; --red-soft:#3A211E;
+  --paper:#12100C; --paper-2:#191612; --card:#211D17;
+  --ink:#EDE6D6; --ink-2:#BAB0A0; --ink-3:#887E70;
+  --line:#332C23; --line-2:#272119;
+  --red:#D27362; --red-2:#A85243; --red-soft:#3A211D;
+  --gold:#D2AC63; --gold-soft:#4A3D24;
   --track:#2B251D; --cov:#2A241C; --cov-line:#3A3226; --cov-cue:#7D7566;
-  --nav:rgba(22,18,13,.92); --topfade:rgba(20,17,13,.96);
+  --nav:rgba(20,17,13,.93); --topfade:rgba(18,16,12,.96);
   --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 28px -20px rgba(0,0,0,.9);
   --mapbg:#10181A; --land:#1E2523; --land2:#242C28; --landline:#31403A; --sealab:#617972; --riv2:#3E5F68;
   --pv1:#342D20; --pv2:#2E2C21; --pv3:#262F25; --pv4:#212D26; --pv-line:#3A453E;
@@ -72,29 +76,47 @@ svg{display:block}
 }
 .topbar .wrap{display:flex;align-items:center;gap:10px}
 .seal{
-  width:30px;height:30px;flex:0 0 30px;border-radius:6px;
-  background:var(--red);color:#fff;display:grid;place-items:center;
-  font-family:var(--serif);font-size:15px;letter-spacing:1px;
-  box-shadow:0 4px 10px -4px rgba(165,52,46,.7);
-  transform:rotate(-3deg);
+  width:30px;height:30px;flex:0 0 30px;border-radius:3px;
+  background:var(--red);color:#FBF3E0;display:grid;place-items:center;
+  font-family:var(--serif);font-size:16px;letter-spacing:0;
+  box-shadow:0 4px 9px -4px rgba(120,32,28,.65),inset 0 0 0 1.5px rgba(231,214,174,.42);
+  transform:rotate(-2deg);
 }
-/* ---------- 启动屏 ---------- */
+/* ---------- 启动屏：朱印落纸 ---------- */
 .splash{position:fixed;inset:0;z-index:9999;background:var(--paper);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:opacity .45s ease,visibility .45s ease}
+  transition:opacity .45s ease,visibility .45s ease;
+  background-image:
+    radial-gradient(rgba(150,120,60,.06) 1px,transparent 1px),
+    radial-gradient(rgba(176,138,69,.05) 1px,transparent 1px);
+  background-size:19px 19px,7px 7px;
+  background-position:0 0,3px 5px;
+}
 .splash.hide{opacity:0;visibility:hidden;pointer-events:none}
 .splash-inner{display:flex;flex-direction:column;align-items:center}
-.splash-seal{width:88px;height:88px;border-radius:18px;background:var(--red);color:#F6E9CE;
-  display:grid;place-items:center;font-size:44px;letter-spacing:2px;
-  box-shadow:0 18px 40px -16px rgba(165,52,46,.75);
-  animation:splashIn .6s cubic-bezier(.2,.7,.3,1) both}
-.splash-title{margin:26px 0 9px;font-size:26px;letter-spacing:.14em;color:var(--ink);font-weight:600;
-  animation:splashFade .6s .15s ease both}
-.splash-sub{margin:0;font-size:13px;letter-spacing:.08em;color:var(--ink-3);
-  animation:splashFade .6s .28s ease both}
+.splash-ring{width:120px;height:120px;position:relative;display:grid;place-items:center}
+.splash-ring:before{content:"";position:absolute;inset:0;border-radius:50%;
+  border:1.5px solid var(--gold);opacity:.5;animation:ringIn .8s cubic-bezier(.2,.7,.3,1) both}
+.splash-ring:after{content:"";position:absolute;inset:9px;border-radius:50%;
+  border:1px solid var(--gold-soft);opacity:.7}
+.splash-seal{width:78px;height:78px;border-radius:5px;background:var(--red);color:#FCF4E2;
+  display:grid;place-items:center;font-size:42px;letter-spacing:2px;position:relative;z-index:2;
+  box-shadow:0 16px 34px -14px rgba(120,32,28,.75),inset 0 0 0 3px rgba(231,214,174,.3);
+  transform:rotate(-5deg);
+  animation:stampIn .5s cubic-bezier(.3,.9,.4,1.3) both}
+.splash-title{margin:24px 0 8px;font-size:27px;letter-spacing:.16em;color:var(--ink);font-weight:600;
+  animation:splashFade .6s .3s ease both}
+.splash-sub{margin:0;font-size:12.5px;letter-spacing:.1em;color:var(--ink-3);
+  animation:splashFade .6s .4s ease both}
+.splash-rule{width:132px;height:1px;margin:18px 0 0;background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  animation:splashFade .6s .5s ease both}
+.splash-meta{margin-top:12px;font-size:11px;letter-spacing:.2em;color:var(--gold);opacity:.9;
+  animation:splashFade .6s .6s ease both}
+@keyframes stampIn{from{opacity:0;transform:rotate(-5deg) scale(1.35)}to{opacity:1;transform:rotate(-5deg) scale(1)}}
+@keyframes ringIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
 @keyframes splashIn{from{opacity:0;transform:rotate(-4deg) scale(.72)}to{opacity:1;transform:rotate(-4deg) scale(1)}}
 @keyframes splashFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.splash-seal,.splash-title,.splash-sub{animation:none}}
+@media (prefers-reduced-motion:reduce){.splash-seal,.splash-title,.splash-sub,.splash-ring:before,.splash-rule,.splash-meta{animation:none}}
 .tt{display:flex;flex-direction:column;line-height:1.2;flex:1;min-width:0}
 .tt b{font-family:var(--serif);font-size:16.5px;letter-spacing:.04em;font-weight:600;white-space:nowrap}
 .tt span{font-size:10.5px;color:var(--ink-3);letter-spacing:.06em;margin-top:3px;
@@ -117,11 +139,29 @@ h1{font-family:var(--serif);font-weight:600;font-size:34px;line-height:1.22;marg
 h1 em{font-style:normal;color:var(--red)}
 .hero-sub{font-size:12.5px;color:var(--ink-2);letter-spacing:.02em}
 .hero .stamp{
-  position:absolute;right:2px;top:16px;width:86px;height:86px;border:2px solid rgba(165,52,46,.5);
-  border-radius:50%;display:grid;place-items:center;transform:rotate(9deg);
-  font-family:var(--serif);color:var(--red);font-size:11px;letter-spacing:.14em;
-  opacity:.7;text-align:center;line-height:1.5;pointer-events:none;
+  position:absolute;right:4px;top:18px;width:64px;height:64px;
+  border:2px solid rgba(142,39,35,.55);border-radius:4px;
+  box-shadow:inset 0 0 0 2px rgba(176,138,69,.35);
+  display:grid;place-items:center;transform:rotate(5deg);
+  font-family:var(--serif);color:var(--red);font-size:24px;letter-spacing:.08em;
+  opacity:.62;text-align:center;line-height:1;pointer-events:none;
 }
+.hero .stamp:after{content:"2027";position:absolute;bottom:5px;font-size:7px;letter-spacing:.22em;opacity:.8;color:var(--gold)}
+
+/* 九板块纲领 */
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 4px}
+.board button{
+  position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  padding:11px 10px 10px;border-radius:11px;border:1px solid var(--line);
+  background:var(--card);box-shadow:var(--shadow);text-align:left;overflow:hidden;
+}
+.board button:before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--red);opacity:.5}
+.board button:active{background:var(--paper-2)}
+.board b{font-family:var(--serif);font-size:13.5px;letter-spacing:.03em;color:var(--ink);line-height:1.3}
+.board i{font-style:normal;font-family:var(--serif);font-size:17px;line-height:1;
+  color:var(--red);font-variant-numeric:tabular-nums;margin-top:3px}
+.board i:after{content:"条";font-size:9px;color:var(--ink-3);margin-left:2px;letter-spacing:.06em}
+.board span{font-size:9.5px;color:var(--ink-3);letter-spacing:.02em;margin-top:2px;line-height:1.35}
 
 .stat-row{
   display:grid;grid-template-columns:repeat(4,1fr);margin:14px 0 12px;
@@ -928,18 +968,20 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 
 <div id="splash" class="splash">
   <div class="splash-inner">
-    <div class="splash-seal serif">页</div>
+    <div class="splash-ring"><div class="splash-seal serif">政</div></div>
     <h1 class="splash-title serif">政治一页纸</h1>
-    <p class="splash-sub">2027 考研政治 · 知识点背诵</p>
+    <p class="splash-sub">2027 考研政治 · 考点 × 真题 × 专题</p>
+    <div class="splash-rule"></div>
+    <div class="splash-meta">100 考点 · 596 道题 · 9 板块</div>
   </div>
 </div>
 
 <header class="topbar">
   <div class="wrap">
-    <div class="seal serif">页</div>
+    <div class="seal serif">政</div>
     <div class="tt">
       <b>政治一页纸</b>
-      <span>2027 考研政治 · 知识点背诵</span>
+      <span>9 板块纲领 · 596 道题</span>
     </div>
     <div class="mini-ring" onclick="go('home')">
       <svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="14" fill="none" stroke="var(--line)" stroke-width="3"/><circle id="miniArc" cx="17" cy="17" r="14" fill="none" stroke="var(--red)" stroke-width="3" stroke-linecap="round" stroke-dasharray="88" stroke-dashoffset="88" transform="rotate(-90 17 17)"/></svg>
@@ -956,10 +998,10 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
 <section class="view on" id="v-home">
   <div class="wrap">
     <div class="hero">
-      <div class="eyebrow">2027 / 考研政治 · 选择题考点</div>
+      <div class="eyebrow">2027 · 考研政治 · 选择题考点</div>
       <h1>政治<br><em>一页纸</em></h1>
-      <div class="hero-sub">100 条考点 · 9 大板块 · 彩色词即考点</div>
-      <div class="stamp serif">政治<br>一页纸</div>
+      <div class="hero-sub">100 条考点 · 9 大板块 · 596 道题（真题 140）</div>
+      <div class="stamp serif">政</div>
     </div>
 
     <div class="stat-row">
@@ -981,6 +1023,19 @@ html[data-theme="night"] mark.hl{background:#8a6d2f;color:#fff}
     </div>
 
     <div id="goalCard"></div>
+
+    <div class="sec-h"><h2>九板块纲领</h2><span class="more">点击直达对应考点</span></div>
+    <div class="board">
+      <button onclick="go('browse');filterCh('史纲')"><b>史纲</b><i>26</i><span>会议 · 纲领 · 事件</span></button>
+      <button onclick="go('browse');filterCh('政经')"><b>政经</b><i>17</i><span>商品 · 资本 · 剩余价值</span></button>
+      <button onclick="go('browse');filterCh('建国后')"><b>建国后</b><i>14</i><span>改造 · 探索 · 新时代</span></button>
+      <button onclick="go('browse');filterCh('马原')"><b>马原</b><i>13</i><span>哲学 · 政经 · 科社</span></button>
+      <button onclick="go('browse');filterCh('重要专题')"><b>重要专题</b><i>10</i><span>主线 · 高频串讲</span></button>
+      <button onclick="go('browse');filterCh('资本主义及垄断')"><b>资本主义</b><i>6</i><span>自由竞争 · 垄断</span></button>
+      <button onclick="go('browse');filterCh('会议大观')"><b>会议大观</b><i>4</i><span>一大到二十大</span></button>
+      <button onclick="go('browse');filterCh('三大辨析')"><b>三大辨析</b><i>4</i><span>易混点对照</span></button>
+      <button onclick="go('browse');filterCh('其他')"><b>其他</b><i>6</i><span>补充 · 边缘考点</span></button>
+    </div>
 
     <div class="dash">
       <div>
@@ -4008,14 +4063,22 @@ window.addEventListener('scroll',()=>{
   const hide=()=>{ if(gone) return; gone=true;
     el.classList.add('hide'); setTimeout(()=>el.remove(),480); };
   el.addEventListener('click', hide);
-  setTimeout(hide,1300);
+  setTimeout(hide,2200);
 })();
 normalizeState();
 migrateSrs();
 chipRow(); renderHome(); renderList(); renderCloze();
 
-const VER='2.28';
+const VER='2.29.1';
 const CHANGELOG=[
+ {v:'2.29.1',d:'2026-11-14',t:'启动屏多停 0.9 秒',items:[
+   '启动屏停留从 1.3 秒拉到 2.2 秒，金线圈和「政」印落纸的动作看得完整；点一下立即跳过']},
+ {v:'2.29',d:'2026-11-14',t:'视觉改版：深朱暗金「政」字印，九板块纲领页',items:[
+   '图标改为「政」字朱印（启动屏、顶栏、favicon 同步），与法制史「史」、真一页「真」成套区分',
+   '启动屏改为朱印落纸：金线圈 + 「政」印压下 + 金线分栏 + 考点/题量/板块数量',
+   '配色加深：朱红由 A5342E 压到 8E2723，加入暗金 B08A45 做线框与数字，纸色更暖',
+   '总览新增「九板块纲领」：史纲 26 / 政经 17 / 建国后 14 / 马原 13 / 重要专题 10 / 资本主义 6 / 会议大观 4 / 三大辨析 4 / 其他 6，点一下直达对应考点',
+   '首屏与顶栏文案改为实际数据：100 考点、9 板块、596 道题（真题 140）']},
  {v:'2.28',d:'2026-11-13',t:'修 AI 出题五道全一样：加去重和轮换角度',items:[
    '原因：每一题的提示词一模一样，模型自然把同一道题反复给你；免费引擎那条路径还压根没查重',
    '每道题现在都带“本组第 i / N 题”，强制指定不同角度：易混辨析、会议/著作/时间偷换、绝对化陷阱、条件偷换、材料型，轮着来',
